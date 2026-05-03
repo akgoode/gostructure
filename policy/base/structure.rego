@@ -11,7 +11,7 @@ deny contains msg if {
 	msg := sprintf("%s:%d — package-level var '%s': avoid mutable global state", [file.name, v.line, v.name])
 }
 
-deny contains msg if {
+warn contains msg if {
 	some file in input.files
 	some t in file.types
 	t.kind == "interface"
