@@ -7,6 +7,7 @@ deny contains msg if {
 	not file.is_test
 	some v in file.vars
 	v.name != "_"
+	not startswith(v.name, "Err")
 	msg := sprintf("%s:%d — package-level var '%s': avoid mutable global state", [file.name, v.line, v.name])
 }
 

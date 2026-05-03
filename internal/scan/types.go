@@ -17,10 +17,11 @@ type FileInventory struct {
 }
 
 type FuncDecl struct {
-	Name     string `json:"name"`
-	Receiver string `json:"receiver"`
-	Exported bool   `json:"exported"`
-	Line     int    `json:"line"`
+	Name         string `json:"name"`
+	Receiver     string `json:"receiver"`
+	Exported     bool   `json:"exported"`
+	ReturnsError bool   `json:"returns_error"`
+	Line         int    `json:"line"`
 }
 
 type TypeDecl struct {

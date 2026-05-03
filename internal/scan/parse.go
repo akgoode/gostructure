@@ -35,9 +35,10 @@ func extractFuncs(fset *token.FileSet, file *ast.File) []FuncDecl {
 			continue
 		}
 		f := FuncDecl{
-			Name:     fn.Name.Name,
-			Exported: fn.Name.IsExported(),
-			Line:     fset.Position(fn.Pos()).Line,
+			Name:         fn.Name.Name,
+			Exported:     fn.Name.IsExported(),
+			ReturnsError: returnsError(fn),
+			Line:         fset.Position(fn.Pos()).Line,
 		}
 		if fn.Recv != nil && len(fn.Recv.List) > 0 {
 			f.Receiver = receiverName(fn.Recv.List[0].Type)
@@ -127,6 +128,19 @@ func receiverName(expr ast.Expr) string {
 	default:
 		return ""
 	}
+}
+
+func returnsError(fn *ast.FuncDecl) bool {
+	if fn.Type.Results == nil {
+		return false
+	}
+	fields := fn.Type.Results.List
+	if len(fields) == 0 {
+		return false
+	}
+	last := fields[len(fields)-1]
+	ident, ok := last.Type.(*ast.Ident)
+	return ok && ident.Name == "error"
 }
 
 func interfaceMethods(iface *ast.InterfaceType) []string {
