@@ -14,7 +14,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	inv, err := scan.Package(os.Args[1])
+	dir := os.Args[1]
+
+	multi, err := scan.IsMultiPackage(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -22,8 +24,26 @@ func main() {
 
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(inv); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+
+	if multi {
+		inv, err := scan.Packages(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := enc.Encode(inv); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		inv, err := scan.Package(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := enc.Encode(inv); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }

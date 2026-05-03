@@ -10,6 +10,7 @@ func inventoryFile(fset *token.FileSet, name string, file *ast.File) FileInvento
 	return FileInventory{
 		Name:    name,
 		IsTest:  strings.HasSuffix(name, "_test.go"),
+		Tags:    extractTags(file),
 		Imports: extractImports(file),
 		Funcs:   extractFuncs(fset, file),
 		Types:   extractTypes(fset, file),
@@ -151,4 +152,23 @@ func interfaceMethods(iface *ast.InterfaceType) []string {
 		}
 	}
 	return methods
+}
+
+const tagPrefix = "//gostructure:"
+
+func extractTags(file *ast.File) []string {
+	var tags []string
+	for _, cg := range file.Comments {
+		for _, c := range cg.List {
+			text := strings.TrimSpace(c.Text)
+			if strings.HasPrefix(text, tagPrefix) {
+				tag := strings.TrimPrefix(text, tagPrefix)
+				tag = strings.TrimSpace(tag)
+				if tag != "" {
+					tags = append(tags, tag)
+				}
+			}
+		}
+	}
+	return tags
 }

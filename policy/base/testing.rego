@@ -8,9 +8,16 @@ test_files contains name if {
 	endswith(name, "_test.go")
 }
 
+skip_tests_files contains name if {
+	some file in input.files
+	"skip-tests" in _file_tags(file)
+	name := file.name
+}
+
 deny contains msg if {
 	some file in input.files
 	not file.is_test
+	not file.name in skip_tests_files
 	file.name != "doc.go"
 	file.name != "main.go"
 	expected := concat("", [trim_suffix(file.name, ".go"), "_test.go"])
@@ -29,6 +36,7 @@ test_funcs contains name if {
 deny contains msg if {
 	some file in input.files
 	not file.is_test
+	not file.name in skip_tests_files
 	some f in file.funcs
 	f.exported
 	f.receiver == ""
@@ -41,10 +49,19 @@ deny contains msg if {
 deny contains msg if {
 	some file in input.files
 	not file.is_test
+	not file.name in skip_tests_files
 	some f in file.funcs
 	f.exported
 	f.receiver != ""
 	expected := concat("", ["Test", f.receiver, "_", f.name])
 	not expected in test_funcs
 	msg := sprintf("%s:%d — exported method %s.%s has no test (expected %s)", [file.name, f.line, f.receiver, f.name, expected])
+}
+
+_file_tags(file) := file.tags if {
+	file.tags
+}
+
+_file_tags(file) := [] if {
+	not file.tags
 }

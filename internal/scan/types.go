@@ -6,9 +6,14 @@ type PackageInventory struct {
 	Files   []FileInventory `json:"files"`
 }
 
+type MultiPackageInventory struct {
+	Packages []PackageInventory `json:"packages"`
+}
+
 type FileInventory struct {
 	Name    string      `json:"name"`
 	IsTest  bool        `json:"is_test"`
+	Tags    []string    `json:"tags,omitempty"`
 	Imports []string    `json:"imports"`
 	Funcs   []FuncDecl  `json:"funcs"`
 	Types   []TypeDecl  `json:"types"`
