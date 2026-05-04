@@ -22,11 +22,20 @@ type FileInventory struct {
 }
 
 type FuncDecl struct {
-	Name         string `json:"name"`
-	Receiver     string `json:"receiver"`
-	Exported     bool   `json:"exported"`
-	ReturnsError bool   `json:"returns_error"`
-	Line         int    `json:"line"`
+	Name         string   `json:"name"`
+	Receiver     string   `json:"receiver"`
+	Exported     bool     `json:"exported"`
+	Params       []Field  `json:"params"`
+	Returns      []string `json:"returns"`
+	ReturnsError bool     `json:"returns_error"`
+	Line         int      `json:"line"`
+}
+
+type Field struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Exported bool   `json:"exported"`
+	Tag      string `json:"tag,omitempty"`
 }
 
 type TypeDecl struct {
@@ -34,17 +43,20 @@ type TypeDecl struct {
 	Kind     string   `json:"kind"`
 	Exported bool     `json:"exported"`
 	Line     int      `json:"line"`
+	Fields   []Field  `json:"fields,omitempty"`
 	Methods  []string `json:"methods,omitempty"`
 }
 
 type VarDecl struct {
 	Name     string `json:"name"`
+	Type     string `json:"type,omitempty"`
 	Exported bool   `json:"exported"`
 	Line     int    `json:"line"`
 }
 
 type ConstDecl struct {
 	Name     string `json:"name"`
+	Type     string `json:"type,omitempty"`
 	Exported bool   `json:"exported"`
 	Line     int    `json:"line"`
 }

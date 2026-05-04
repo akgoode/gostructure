@@ -55,21 +55,52 @@ func TestExtractFuncs(t *testing.T) {
 			name: "returns error",
 			src:  "package p\nfunc Run() error { return nil }",
 			expected: []FuncDecl{
-				{Name: "Run", Exported: true, ReturnsError: true, Line: 2},
+				{Name: "Run", Exported: true, ReturnsError: true, Returns: []string{"error"}, Line: 2},
 			},
 		},
 		{
 			name: "returns value and error",
 			src:  "package p\nfunc Get() (int, error) { return 0, nil }",
 			expected: []FuncDecl{
-				{Name: "Get", Exported: true, ReturnsError: true, Line: 2},
+				{Name: "Get", Exported: true, ReturnsError: true, Returns: []string{"int", "error"}, Line: 2},
 			},
 		},
 		{
 			name: "returns non-error",
 			src:  "package p\nfunc Count() int { return 0 }",
 			expected: []FuncDecl{
-				{Name: "Count", Exported: true, ReturnsError: false, Line: 2},
+				{Name: "Count", Exported: true, ReturnsError: false, Returns: []string{"int"}, Line: 2},
+			},
+		},
+		{
+			name: "params and returns",
+			src:  "package p\nimport \"context\"\nfunc New(ctx context.Context, cfg Config) (*Server, error) { return nil, nil }",
+			expected: []FuncDecl{
+				{
+					Name: "New", Exported: true, ReturnsError: true, Line: 3,
+					Params:  []Field{{Name: "ctx", Type: "context.Context"}, {Name: "cfg", Type: "Config"}},
+					Returns: []string{"*Server", "error"},
+				},
+			},
+		},
+		{
+			name: "variadic params",
+			src:  "package p\nfunc Log(msg string, args ...any) {}",
+			expected: []FuncDecl{
+				{
+					Name: "Log", Exported: true, Line: 2,
+					Params: []Field{{Name: "msg", Type: "string"}, {Name: "args", Type: "...any"}},
+				},
+			},
+		},
+		{
+			name: "unnamed params",
+			src:  "package p\nfunc Handle(string, int) {}",
+			expected: []FuncDecl{
+				{
+					Name: "Handle", Exported: true, Line: 2,
+					Params: []Field{{Type: "string"}, {Type: "int"}},
+				},
 			},
 		},
 	}
@@ -98,6 +129,24 @@ func TestExtractFuncs(t *testing.T) {
 				if g.Line != want.Line {
 					t.Errorf("func[%d].Line = %d, want %d", i, g.Line, want.Line)
 				}
+				if len(g.Params) != len(want.Params) {
+					t.Errorf("func[%d].Params = %v, want %v", i, g.Params, want.Params)
+				} else {
+					for j, wp := range want.Params {
+						if g.Params[j].Name != wp.Name || g.Params[j].Type != wp.Type {
+							t.Errorf("func[%d].Params[%d] = %v, want %v", i, j, g.Params[j], wp)
+						}
+					}
+				}
+				if len(g.Returns) != len(want.Returns) {
+					t.Errorf("func[%d].Returns = %v, want %v", i, g.Returns, want.Returns)
+				} else {
+					for j, wr := range want.Returns {
+						if g.Returns[j] != wr {
+							t.Errorf("func[%d].Returns[%d] = %q, want %q", i, j, g.Returns[j], wr)
+						}
+					}
+				}
 			}
 		})
 	}
@@ -110,10 +159,24 @@ func TestExtractTypes(t *testing.T) {
 		expected []TypeDecl
 	}{
 		{
-			name: "struct",
-			src:  "package p\ntype Config struct{ Name string }",
+			name: "struct with fields",
+			src:  "package p\ntype Config struct{\n\tName string\n\tPort int\n\ttimeout float64\n}",
 			expected: []TypeDecl{
-				{Name: "Config", Kind: "struct", Exported: true, Line: 2},
+				{Name: "Config", Kind: "struct", Exported: true, Line: 2, Fields: []Field{
+					{Name: "Name", Type: "string", Exported: true},
+					{Name: "Port", Type: "int", Exported: true},
+					{Name: "timeout", Type: "float64", Exported: false},
+				}},
+			},
+		},
+		{
+			name: "struct with tags and embedding",
+			src:  "package p\nimport \"time\"\ntype Order struct{\n\tID string `json:\"id\"`\n\tCreated time.Time\n}",
+			expected: []TypeDecl{
+				{Name: "Order", Kind: "struct", Exported: true, Line: 3, Fields: []Field{
+					{Name: "ID", Type: "string", Exported: true, Tag: `json:"id"`},
+					{Name: "Created", Type: "time.Time", Exported: true},
+				}},
 			},
 		},
 		{
@@ -156,6 +219,16 @@ func TestExtractTypes(t *testing.T) {
 					for j, m := range want.Methods {
 						if g.Methods[j] != m {
 							t.Errorf("type[%d].Methods[%d] = %q, want %q", i, j, g.Methods[j], m)
+						}
+					}
+				}
+				if len(g.Fields) != len(want.Fields) {
+					t.Errorf("type[%d].Fields count = %d, want %d", i, len(g.Fields), len(want.Fields))
+				} else {
+					for j, wf := range want.Fields {
+						gf := g.Fields[j]
+						if gf.Name != wf.Name || gf.Type != wf.Type || gf.Exported != wf.Exported || gf.Tag != wf.Tag {
+							t.Errorf("type[%d].Fields[%d] = %+v, want %+v", i, j, gf, wf)
 						}
 					}
 				}

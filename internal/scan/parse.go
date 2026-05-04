@@ -63,6 +63,8 @@ func extractFuncs(fset *token.FileSet, file *ast.File) []FuncDecl {
 		f := FuncDecl{
 			Name:         fn.Name.Name,
 			Exported:     fn.Name.IsExported(),
+			Params:       extractParams(fn.Type.Params),
+			Returns:      extractReturns(fn.Type.Results),
 			ReturnsError: returnsError(fn),
 			Line:         fset.Position(fn.Pos()).Line,
 		}
@@ -72,6 +74,45 @@ func extractFuncs(fset *token.FileSet, file *ast.File) []FuncDecl {
 		funcs = append(funcs, f)
 	}
 	return funcs
+}
+
+func extractParams(fields *ast.FieldList) []Field {
+	if fields == nil {
+		return nil
+	}
+	var params []Field
+	for _, field := range fields.List {
+		typeName := typeString(field.Type)
+		if len(field.Names) == 0 {
+			params = append(params, Field{Type: typeName})
+			continue
+		}
+		for _, name := range field.Names {
+			params = append(params, Field{
+				Name: name.Name,
+				Type: typeName,
+			})
+		}
+	}
+	return params
+}
+
+func extractReturns(fields *ast.FieldList) []string {
+	if fields == nil {
+		return nil
+	}
+	var returns []string
+	for _, field := range fields.List {
+		typeName := typeString(field.Type)
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
+		}
+		for range count {
+			returns = append(returns, typeName)
+		}
+	}
+	return returns
 }
 
 func extractTypes(fset *token.FileSet, file *ast.File) []TypeDecl {
@@ -91,6 +132,7 @@ func extractTypes(fset *token.FileSet, file *ast.File) []TypeDecl {
 			switch t := ts.Type.(type) {
 			case *ast.StructType:
 				td.Kind = "struct"
+				td.Fields = extractStructFields(t)
 			case *ast.InterfaceType:
 				td.Kind = "interface"
 				td.Methods = interfaceMethods(t)
@@ -112,9 +154,14 @@ func extractVars(fset *token.FileSet, file *ast.File) []VarDecl {
 		}
 		for _, spec := range gd.Specs {
 			vs := spec.(*ast.ValueSpec)
+			var typeName string
+			if vs.Type != nil {
+				typeName = typeString(vs.Type)
+			}
 			for _, name := range vs.Names {
 				vars = append(vars, VarDecl{
 					Name:     name.Name,
+					Type:     typeName,
 					Exported: name.IsExported(),
 					Line:     fset.Position(name.Pos()).Line,
 				})
@@ -133,9 +180,14 @@ func extractConsts(fset *token.FileSet, file *ast.File) []ConstDecl {
 		}
 		for _, spec := range gd.Specs {
 			vs := spec.(*ast.ValueSpec)
+			var typeName string
+			if vs.Type != nil {
+				typeName = typeString(vs.Type)
+			}
 			for _, name := range vs.Names {
 				consts = append(consts, ConstDecl{
 					Name:     name.Name,
+					Type:     typeName,
 					Exported: name.IsExported(),
 					Line:     fset.Position(name.Pos()).Line,
 				})
@@ -143,6 +195,65 @@ func extractConsts(fset *token.FileSet, file *ast.File) []ConstDecl {
 		}
 	}
 	return consts
+}
+
+func extractStructFields(s *ast.StructType) []Field {
+	if s.Fields == nil {
+		return nil
+	}
+	var fields []Field
+	for _, f := range s.Fields.List {
+		typeName := typeString(f.Type)
+		var tag string
+		if f.Tag != nil {
+			tag = strings.Trim(f.Tag.Value, "`")
+		}
+		if len(f.Names) == 0 {
+			fields = append(fields, Field{
+				Type:     typeName,
+				Exported: ast.IsExported(typeName),
+				Tag:      tag,
+			})
+			continue
+		}
+		for _, name := range f.Names {
+			fields = append(fields, Field{
+				Name:     name.Name,
+				Type:     typeName,
+				Exported: name.IsExported(),
+				Tag:      tag,
+			})
+		}
+	}
+	return fields
+}
+
+func typeString(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.StarExpr:
+		return "*" + typeString(t.X)
+	case *ast.SelectorExpr:
+		return typeString(t.X) + "." + t.Sel.Name
+	case *ast.ArrayType:
+		if t.Len == nil {
+			return "[]" + typeString(t.Elt)
+		}
+		return "[...]" + typeString(t.Elt)
+	case *ast.MapType:
+		return "map[" + typeString(t.Key) + "]" + typeString(t.Value)
+	case *ast.InterfaceType:
+		return "interface{}"
+	case *ast.ChanType:
+		return "chan " + typeString(t.Value)
+	case *ast.FuncType:
+		return "func"
+	case *ast.Ellipsis:
+		return "..." + typeString(t.Elt)
+	default:
+		return "unknown"
+	}
 }
 
 func receiverName(expr ast.Expr) string {
