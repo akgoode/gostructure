@@ -1,4 +1,4 @@
-package scan
+package goscan
 
 import (
 	"go/ast"
@@ -290,7 +290,7 @@ func interfaceMethods(iface *ast.InterfaceType) []string {
 	return methods
 }
 
-const tagPrefix = "//gostructure:"
+const tagPrefix = "//codestructure:"
 
 func extractTags(file *ast.File) []string {
 	var tags []string

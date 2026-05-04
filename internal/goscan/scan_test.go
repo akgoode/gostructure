@@ -1,4 +1,4 @@
-package scan
+package goscan
 
 import (
 	"os"
@@ -102,8 +102,8 @@ func Start() error { return nil }
 
 func TestScan_Tags(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "gen.go", `//gostructure:skip-tests
-//gostructure:allow-globals
+	writeFile(t, dir, "gen.go", `//codestructure:skip-tests
+//codestructure:allow-globals
 package gen
 
 var Registry = map[string]int{}

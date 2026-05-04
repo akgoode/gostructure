@@ -1,5 +1,5 @@
-//gostructure:skip-tests
-package scan
+//codestructure:skip-tests
+package goscan
 
 type PackageInventory struct {
 	Package string          `json:"package"`

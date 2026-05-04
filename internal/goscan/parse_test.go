@@ -1,4 +1,4 @@
-package scan
+package goscan
 
 import (
 	"go/ast"
@@ -250,17 +250,17 @@ func TestExtractTags(t *testing.T) {
 		},
 		{
 			name:     "single tag",
-			src:      "//gostructure:skip-tests\npackage p\n",
+			src:      "//codestructure:skip-tests\npackage p\n",
 			expected: []string{"skip-tests"},
 		},
 		{
 			name:     "multiple tags",
-			src:      "//gostructure:skip-tests\n//gostructure:workflow\npackage p\n",
+			src:      "//codestructure:skip-tests\n//codestructure:workflow\npackage p\n",
 			expected: []string{"skip-tests", "workflow"},
 		},
 		{
 			name:     "tag with spaces",
-			src:      "//gostructure: allow-globals\npackage p\n",
+			src:      "//codestructure: allow-globals\npackage p\n",
 			expected: []string{"allow-globals"},
 		},
 		{
@@ -270,7 +270,7 @@ func TestExtractTags(t *testing.T) {
 		},
 		{
 			name:     "inline comment with tag",
-			src:      "package p\nvar x = 1 //gostructure:allow-globals\n",
+			src:      "package p\nvar x = 1 //codestructure:allow-globals\n",
 			expected: []string{"allow-globals"},
 		},
 	}
@@ -332,7 +332,7 @@ func TestExtractConsts(t *testing.T) {
 }
 
 func TestInventoryFile(t *testing.T) {
-	src := `//gostructure:workflow
+	src := `//codestructure:workflow
 package p
 
 import "fmt"
