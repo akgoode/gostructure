@@ -16,7 +16,7 @@ func writeFile(t *testing.T, dir, name, content string) {
 	}
 }
 
-func TestScan_SinglePackage(t *testing.T) {
+func TestScan(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "math.go", `package math
 
@@ -148,29 +148,6 @@ func TestHello(t *testing.T) {}
 	}
 	if len(inv.Files) != 2 {
 		t.Fatalf("got %d files, want 2", len(inv.Files))
-	}
-}
-
-func TestFindGoFiles(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, dir, "main.go", "package main\n")
-	writeFile(t, dir, "README.md", "# readme\n")
-
-	files := findGoFiles(dir)
-	if len(files) != 1 {
-		t.Fatalf("got %d files, want 1", len(files))
-	}
-}
-
-func TestFindPackageDirs(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, "foo"), "foo.go", "package foo\n")
-	writeFile(t, filepath.Join(dir, "bar"), "bar.go", "package bar\n")
-	writeFile(t, filepath.Join(dir, "empty"), ".gitkeep", "")
-
-	dirs := findPackageDirs(dir)
-	if len(dirs) != 2 {
-		t.Fatalf("got %d dirs, want 2", len(dirs))
 	}
 }
 

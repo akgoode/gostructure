@@ -1,15 +1,16 @@
 package scan
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func findGoFiles(dir string) []string {
+func findGoFiles(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("read directory %s: %w", dir, err)
 	}
 	var files []string
 	for _, e := range entries {
@@ -17,13 +18,13 @@ func findGoFiles(dir string) []string {
 			files = append(files, filepath.Join(dir, e.Name()))
 		}
 	}
-	return files
+	return files, nil
 }
 
-func findPackageDirs(dir string) []string {
+func findPackageDirs(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("read directory %s: %w", dir, err)
 	}
 	var dirs []string
 	for _, e := range entries {
@@ -31,9 +32,13 @@ func findPackageDirs(dir string) []string {
 			continue
 		}
 		sub := filepath.Join(dir, e.Name())
-		if len(findGoFiles(sub)) > 0 {
+		files, err := findGoFiles(sub)
+		if err != nil {
+			return nil, err
+		}
+		if len(files) > 0 {
 			dirs = append(dirs, sub)
 		}
 	}
-	return dirs
+	return dirs, nil
 }

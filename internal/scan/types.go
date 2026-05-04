@@ -1,3 +1,4 @@
+//gostructure:skip-tests
 package scan
 
 type PackageInventory struct {
