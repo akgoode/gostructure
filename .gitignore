@@ -1,2 +1,8 @@
 /code-structure
+/bin/
 *.exe
+
+# .NET build artifacts
+**/bin/Debug/
+**/bin/Release/
+**/obj/
