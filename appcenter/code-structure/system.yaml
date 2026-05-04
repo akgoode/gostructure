@@ -1,0 +1,24 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: code-structure
+  title: Code Structure Analyzer
+  description: >-
+    CLI tool and OPA/Conftest policy library that scans Go and .NET codebases
+    into structural JSON inventories and validates them against convention policies.
+    Used by the Platform team to enforce code structure standards across Echo services.
+  tags:
+    - go
+    - dotnet
+    - opa
+    - conftest
+    - cli
+    - policy
+  links:
+    - url: https://github.com/Echo-Global-Logistics-Inc/code-structure
+      title: GitHub Repository
+      icon: code
+spec:
+  owner: domain_platform
+  domain: platform
