@@ -1,0 +1,19 @@
+site_name: Code Structure Analyzer
+site_description: CLI tool and OPA/Conftest policy library for validating Go and .NET code structure conventions
+site_author: Echo IT Team
+site_url: https://github.com/Echo-Global-Logistics-Inc/code-structure
+
+repo_name: Echo-Global-Logistics-Inc/code-structure
+repo_url: https://github.com/Echo-Global-Logistics-Inc/code-structure
+edit_uri: ""
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - CLI Reference: cli-reference.md
+  - Policy Catalog: policy-catalog.md
+  - Local Development: local-setup.md
+  - Troubleshooting: troubleshooting.md
+
+plugins:
+  - techdocs-core

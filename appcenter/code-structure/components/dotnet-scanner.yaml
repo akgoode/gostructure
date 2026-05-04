@@ -1,0 +1,26 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dotnet-scanner
+  title: .NET Code Structure Scanner
+  description: >-
+    .NET 8.0 console application that uses reflection to scan compiled .NET
+    assemblies and output structural JSON inventories. Used as a companion binary
+    by the code-structure CLI when analyzing .NET projects.
+  annotations:
+    github.com/project-slug: Echo-Global-Logistics-Inc/code-structure
+    backstage.io/source-location: url:https://github.com/Echo-Global-Logistics-Inc/code-structure/tree/main/tools/dotnet-scanner
+  tags:
+    - dotnet
+    - cli
+    - code-analysis
+  links:
+    - url: https://github.com/Echo-Global-Logistics-Inc/code-structure/tree/main/tools/dotnet-scanner
+      title: Source Code
+      icon: code
+spec:
+  type: tool
+  lifecycle: experimental
+  owner: domain_platform
+  system: code-structure
