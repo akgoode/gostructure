@@ -120,6 +120,208 @@ warn contains msg if {
 	])
 }
 
+warn contains msg if {
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	count(f.returns) > 2
+	msg := sprintf("%s\n%s", [
+		sprintf("%s:%d — %s returns %d values (max 2)", [file.name, f.line, f.name, count(f.returns)]),
+		concat("\n", [
+			"",
+			"Go functions conventionally return at most two values: a result and an",
+			"error. Beyond that, the function is computing multiple things at once and",
+			"the caller has to juggle them all — often discarding values it doesn't need.",
+			"",
+			"When a function needs to return more than two values, group them into a",
+			"struct. This gives the return values a name, makes them self-documenting,",
+			"and lets you add fields later without changing the function signature.",
+			"",
+			"Before:",
+			"  func Process(id string) (string, int, bool, error)",
+			"",
+			"After:",
+			"  type Result struct {",
+			"      Name    string",
+			"      Count   int",
+			"      Success bool",
+			"  }",
+			"",
+			"  func Process(id string) (Result, error)",
+		]),
+	])
+}
+
+warn contains msg if {
+	some file in input.files
+	not file.is_test
+	some t in file.types
+	t.kind == "struct"
+	t.name != "Config"
+	count(t.fields) > 8
+	msg := sprintf("%s\n%s", [
+		sprintf("%s:%d — struct '%s' has %d fields (max 8)", [file.name, t.line, t.name, count(t.fields)]),
+		concat("\n", [
+			"",
+			"A struct with this many fields is representing too many concepts at once.",
+			"Like a function with too many parameters, each field multiplies the state",
+			"space — more combinations to construct, more fields to keep consistent,",
+			"more surface area to test.",
+			"",
+			"Look for fields that cluster together and extract them into their own type.",
+			"If a subset of fields is always read or written as a group, that group is",
+			"a concept that deserves its own name.",
+			"",
+			"Before:",
+			"  type Order struct {",
+			"      ID, CustomerID, Status string",
+			"      BillingStreet, BillingCity, BillingState, BillingZip string",
+			"      ShippingStreet, ShippingCity, ShippingState, ShippingZip string",
+			"  }",
+			"",
+			"After:",
+			"  type Address struct {",
+			"      Street, City, State, Zip string",
+			"  }",
+			"",
+			"  type Order struct {",
+			"      ID, CustomerID, Status string",
+			"      Billing  Address",
+			"      Shipping Address",
+			"  }",
+			"",
+			"Note: Config structs are exempt — they are flat by design because each",
+			"field maps to one external input (env var, flag, secret).",
+		]),
+	])
+}
+
+_method_count(receiver) := count([f |
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	f.receiver == receiver
+])
+
+_type_receivers contains t.name if {
+	some file in input.files
+	not file.is_test
+	some t in file.types
+	t.kind == "struct"
+}
+
+warn contains msg if {
+	some receiver in _type_receivers
+	mc := _method_count(receiver)
+	mc > 10
+	msg := sprintf("%s\n%s", [
+		sprintf("type '%s' has %d methods (max 10)", [receiver, mc]),
+		concat("\n", [
+			"",
+			"A type with this many methods is accumulating too many responsibilities.",
+			"It becomes the place where everything happens — hard to understand, hard",
+			"to test in isolation, and hard to reuse parts of without dragging in the",
+			"whole thing.",
+			"",
+			"Look for method clusters that serve different purposes. A type that handles",
+			"both data access and business logic should be two types. A type that manages",
+			"both configuration and execution is two concepts sharing a struct.",
+			"",
+			"Split by extracting a group of methods and the fields they use into a new",
+			"type. The original type can hold the new one as a field and delegate.",
+			"",
+			"Before:",
+			"  type Worker struct { ... }",
+			"  func (w *Worker) FetchCards() { ... }",
+			"  func (w *Worker) FilterCards() { ... }",
+			"  func (w *Worker) PickCard() { ... }",
+			"  func (w *Worker) Execute() { ... }",
+			"  func (w *Worker) RecordResult() { ... }",
+			"  func (w *Worker) SendNotification() { ... }",
+			"  // ... 5 more methods",
+			"",
+			"After:",
+			"  type CardPicker struct { ... }",
+			"  func (p *CardPicker) Pick(cards []Card) Card { ... }",
+			"",
+			"  type Worker struct {",
+			"      picker CardPicker",
+			"      // ...",
+			"  }",
+		]),
+	])
+}
+
+warn contains msg if {
+	some file in input.files
+	not file.is_test
+	some t in file.types
+	t.kind == "struct"
+	t.exported
+	t.name != "Config"
+	_has_fields_needing_setup(t)
+	not _has_constructor_for(t.name)
+	msg := sprintf("%s\n%s", [
+		sprintf("%s:%d — exported struct '%s' has no constructor", [file.name, t.line, t.name]),
+		concat("\n", [
+			"",
+			"This struct is exported and has fields that suggest it needs wiring —",
+			"interfaces, pointers, or external types that the caller would have to",
+			"know how to set up correctly. Without a constructor, every caller",
+			"assembles the struct by hand, which spreads initialization logic and",
+			"makes it easy to forget a required field.",
+			"",
+			"Add a New function that validates inputs and returns the struct ready",
+			"to use. The constructor is the single place that knows what a valid",
+			"instance looks like.",
+			"",
+			"Example:",
+			"  func New(cfg Config) (*Server, error) {",
+			"      if cfg.Port == 0 {",
+			"          return nil, errors.New(\"port is required\")",
+			"      }",
+			"      return &Server{",
+			"          port:   cfg.Port,",
+			"          logger: cfg.Logger,",
+			"      }, nil",
+			"  }",
+		]),
+	])
+}
+
+_has_fields_needing_setup(t) if {
+	some f in t.fields
+	startswith(f.type, "*")
+}
+
+_has_fields_needing_setup(t) if {
+	some f in t.fields
+	contains(f.type, ".")
+}
+
+_has_fields_needing_setup(t) if {
+	some f in t.fields
+	not f.exported
+}
+
+_has_constructor_for(type_name) if {
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	f.exported
+	f.receiver == ""
+	f.name == "New"
+}
+
+_has_constructor_for(type_name) if {
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	f.exported
+	f.receiver == ""
+	f.name == concat("", ["New", type_name])
+}
+
 _file_tags(file) := file.tags if {
 	file.tags
 }
