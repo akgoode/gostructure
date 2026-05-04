@@ -1,7 +1,12 @@
-package main
+package imports
 
 import rego.v1
 
+# METADATA
+# title: Too many imports
+# description: >
+#   Files importing more than 8 packages are pulling in too many concerns.
+#   Split the file along import clusters.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -27,7 +32,7 @@ warn contains msg if {
 	])
 }
 
-test_packages := {
+_test_packages := {
 	"github.com/stretchr/testify",
 	"github.com/stretchr/testify/assert",
 	"github.com/stretchr/testify/require",
@@ -39,23 +44,21 @@ test_packages := {
 	"github.com/golang/mock/gomock",
 }
 
-deny contains msg if {
+# METADATA
+# title: Test package in production code
+# description: >
+#   Test frameworks must not be imported in non-test files. They become runtime
+#   dependencies, increase binary size, and confuse the boundary between test
+#   infrastructure and production code.
+violation_test_import contains obj if {
 	some file in input.files
 	not file.is_test
 	some imp in file.imports
-	imp in test_packages
-	msg := sprintf("%s\n%s", [
-		sprintf("%s — imports test package '%s' in production code", [file.name, imp]),
-		concat("\n", [
-			"",
-			"Test dependencies must stay in test files. Importing a test framework in",
-			"production code means the framework becomes a runtime dependency — it ships",
-			"in the binary, increases the attack surface, and creates confusion about",
-			"what's test infrastructure vs. what's real.",
-			"",
-			"If you need assertions or mocks in production code, you're looking for",
-			"validation (use explicit checks and return errors) or interfaces (define",
-			"a small interface and pass a real implementation).",
-		]),
-	])
+	imp in _test_packages
+	obj := {
+		"msg": sprintf("%s — imports test package '%s' in production code. Test dependencies must stay in test files.", [file.name, imp]),
+		"rule_id": "GO-IMP-001",
+		"severity": "error",
+		"_loc": {"file": file.name},
+	}
 }

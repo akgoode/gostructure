@@ -1,17 +1,33 @@
-package main
+package structure
 
 import rego.v1
 
-deny contains msg if {
+# METADATA
+# title: No global mutable variables
+# description: >
+#   Package-level vars create hidden coupling, race conditions, and make testing
+#   impossible without global state mutation. Exempt: error sentinels (Err*) and
+#   throwaway (_).
+violation_global_vars contains obj if {
 	some file in input.files
 	not file.is_test
 	not "allow-globals" in _file_tags(file)
 	some v in file.vars
 	v.name != "_"
 	not startswith(v.name, "Err")
-	msg := sprintf("%s:%d — package-level var '%s': avoid mutable global state. Make this a const, move it inside the function that uses it, or return it from a constructor.", [file.name, v.line, v.name])
+	obj := {
+		"msg": sprintf("%s:%d — package-level var '%s': avoid mutable global state. Make this a const, move it inside the function that uses it, or return it from a constructor.", [file.name, v.line, v.name]),
+		"rule_id": "GO-STRUCT-001",
+		"severity": "error",
+		"_loc": {"file": file.name, "line": v.line},
+	}
 }
 
+# METADATA
+# title: Interface too large
+# description: >
+#   Interfaces with more than 5 methods create tight coupling. Define interfaces
+#   at the consumer with only the methods that caller needs.
 warn contains msg if {
 	some file in input.files
 	some t in file.types
@@ -54,6 +70,11 @@ warn contains msg if {
 	])
 }
 
+# METADATA
+# title: Too many functions in file
+# description: >
+#   Files with more than 10 non-test functions are doing too many things. Split
+#   by concept, not by role.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -81,6 +102,11 @@ warn contains msg if {
 	])
 }
 
+# METADATA
+# title: Too many function parameters
+# description: >
+#   Functions with more than 4 parameters have exponential state space. Group
+#   related parameters into a named struct.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -120,6 +146,11 @@ warn contains msg if {
 	])
 }
 
+# METADATA
+# title: Too many return values
+# description: >
+#   Functions returning more than 2 values should wrap results in a struct.
+#   Go convention is (result, error) at most.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -152,6 +183,11 @@ warn contains msg if {
 	])
 }
 
+# METADATA
+# title: Struct has too many fields
+# description: >
+#   Structs with more than 8 fields represent too many concepts at once.
+#   Extract field clusters into their own types. Config structs are exempt.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -196,20 +232,11 @@ warn contains msg if {
 	])
 }
 
-_method_count(receiver) := count([f |
-	some file in input.files
-	not file.is_test
-	some f in file.funcs
-	f.receiver == receiver
-])
-
-_type_receivers contains t.name if {
-	some file in input.files
-	not file.is_test
-	some t in file.types
-	t.kind == "struct"
-}
-
+# METADATA
+# title: Type has too many methods
+# description: >
+#   Types with more than 10 methods accumulate too many responsibilities.
+#   Extract method clusters into separate types.
 warn contains msg if {
 	some receiver in _type_receivers
 	mc := _method_count(receiver)
@@ -252,6 +279,11 @@ warn contains msg if {
 	])
 }
 
+# METADATA
+# title: Exported struct missing constructor
+# description: >
+#   Exported structs with complex fields (pointers, external types, unexported
+#   fields) need a New* constructor to centralize initialization.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -287,6 +319,20 @@ warn contains msg if {
 			"  }",
 		]),
 	])
+}
+
+_method_count(receiver) := count([f |
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	f.receiver == receiver
+])
+
+_type_receivers contains t.name if {
+	some file in input.files
+	not file.is_test
+	some t in file.types
+	t.kind == "struct"
 }
 
 _has_fields_needing_setup(t) if {
