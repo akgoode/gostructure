@@ -18,7 +18,7 @@ warn contains msg if {
 	t.kind == "interface"
 	count(t.methods) > 5
 	msg := sprintf("%s\n%s", [
-		sprintf("%s:%d — interface '%s' has %d methods (max 5)", [file.name, t.line, t.name, count(t.methods)]),
+		sprintf("CONSIDER: %s:%d — interface '%s' has %d methods (max 5)", [file.name, t.line, t.name, count(t.methods)]),
 		concat("\n", [
 			"",
 			"Large interfaces create tight coupling — every implementation must satisfy",
@@ -60,7 +60,7 @@ warn contains msg if {
 	funcs := [f | some f in file.funcs; not startswith(f.name, "Test")]
 	count(funcs) > 10
 	msg := sprintf("%s\n%s", [
-		sprintf("%s — file has %d functions (max 10)", [file.name, count(funcs)]),
+		sprintf("SHOULD: %s — file has %d functions (max 10)", [file.name, count(funcs)]),
 		concat("\n", [
 			"",
 			"A file with this many functions is doing too many things. Each file should",
@@ -87,7 +87,7 @@ warn contains msg if {
 	some f in file.funcs
 	count(f.params) > 4
 	msg := sprintf("%s\n%s", [
-		sprintf("%s:%d — %s has %d parameters (max 4)", [file.name, f.line, f.name, count(f.params)]),
+		sprintf("SHOULD: %s:%d — %s has %d parameters (max 4)", [file.name, f.line, f.name, count(f.params)]),
 		concat("\n", [
 			"",
 			"Beyond 4 parameters, the set of possible input combinations fans out",
@@ -126,7 +126,7 @@ warn contains msg if {
 	some f in file.funcs
 	count(f.returns) > 2
 	msg := sprintf("%s\n%s", [
-		sprintf("%s:%d — %s returns %d values (max 2)", [file.name, f.line, f.name, count(f.returns)]),
+		sprintf("SHOULD: %s:%d — %s returns %d values (max 2)", [file.name, f.line, f.name, count(f.returns)]),
 		concat("\n", [
 			"",
 			"Go functions conventionally return at most two values: a result and an",
@@ -160,7 +160,7 @@ warn contains msg if {
 	t.name != "Config"
 	count(t.fields) > 8
 	msg := sprintf("%s\n%s", [
-		sprintf("%s:%d — struct '%s' has %d fields (max 8)", [file.name, t.line, t.name, count(t.fields)]),
+		sprintf("SHOULD: %s:%d — struct '%s' has %d fields (max 8)", [file.name, t.line, t.name, count(t.fields)]),
 		concat("\n", [
 			"",
 			"A struct with this many fields is representing too many concepts at once.",
@@ -215,7 +215,7 @@ warn contains msg if {
 	mc := _method_count(receiver)
 	mc > 10
 	msg := sprintf("%s\n%s", [
-		sprintf("type '%s' has %d methods (max 10)", [receiver, mc]),
+		sprintf("CONSIDER: type '%s' has %d methods (max 10)", [receiver, mc]),
 		concat("\n", [
 			"",
 			"A type with this many methods is accumulating too many responsibilities.",
@@ -262,7 +262,7 @@ warn contains msg if {
 	_has_fields_needing_setup(t)
 	not _has_constructor_for(t.name)
 	msg := sprintf("%s\n%s", [
-		sprintf("%s:%d — exported struct '%s' has no constructor", [file.name, t.line, t.name]),
+		sprintf("SHOULD: %s:%d — exported struct '%s' has no constructor", [file.name, t.line, t.name]),
 		concat("\n", [
 			"",
 			"This struct is exported and has fields that suggest it needs wiring —",

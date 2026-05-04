@@ -34,5 +34,5 @@ _has_exported_func(pkg) if {
 
 warn contains msg if {
 	count(input.packages) > 10
-	msg := sprintf("module has %d packages — consider whether some can be consolidated", [count(input.packages)])
+	msg := sprintf("CONSIDER: module has %d packages — consider whether some can be consolidated", [count(input.packages)])
 }

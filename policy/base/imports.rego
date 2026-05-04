@@ -7,7 +7,7 @@ warn contains msg if {
 	not file.is_test
 	count(file.imports) > 8
 	msg := sprintf("%s\n%s", [
-		sprintf("%s — file has %d imports (max 8)", [file.name, count(file.imports)]),
+		sprintf("CONSIDER: %s — file has %d imports (max 8)", [file.name, count(file.imports)]),
 		concat("\n", [
 			"",
 			"A file importing this many packages is pulling in too many concerns. Each",
