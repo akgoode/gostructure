@@ -1,4 +1,4 @@
-.PHONY: build build-go build-dotnet test test-go test-dotnet test-policies clean
+.PHONY: build build-go build-dotnet test test-go test-policies clean
 
 build: build-go build-dotnet
 
@@ -15,6 +15,7 @@ test-go:
 
 test-policies:
 	conftest verify -p policy/go
+	conftest verify -p policy/dotnet
 
 clean:
 	rm -f code-structure

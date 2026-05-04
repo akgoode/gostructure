@@ -12,7 +12,7 @@ public static class AssemblyScanner
         using var context = new MetadataLoadContext(resolver);
 
         var assembly = context.LoadFromAssemblyPath(fullPath);
-        var types = assembly.GetTypes()
+        var types = LoadTypes(assembly)
             .Where(t => !IsCompilerGenerated(t))
             .ToList();
 
@@ -293,6 +293,21 @@ public static class AssemblyScanner
     {
         return member.GetCustomAttributesData()
             .Any(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
+    }
+
+    static Type[] LoadTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            foreach (var le in ex.LoaderExceptions.Where(e => e != null).DistinctBy(e => e!.Message))
+                Console.Error.WriteLine($"warning: {le!.Message}");
+
+            return ex.Types.Where(t => t != null).ToArray()!;
+        }
     }
 
     static MetadataAssemblyResolver BuildResolver(string assemblyPath)
