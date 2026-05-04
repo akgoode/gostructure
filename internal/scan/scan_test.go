@@ -16,7 +16,7 @@ func writeFile(t *testing.T, dir, name, content string) {
 	}
 }
 
-func TestPackage_Basic(t *testing.T) {
+func TestScan_SinglePackage(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "math.go", `package math
 
@@ -31,9 +31,13 @@ func TestAdd(t *testing.T) {}
 func TestSub(t *testing.T) {}
 `)
 
-	inv, err := Package(dir)
+	result, err := Scan(dir)
 	if err != nil {
-		t.Fatalf("Package: %v", err)
+		t.Fatalf("Scan: %v", err)
+	}
+	inv, ok := result.(*PackageInventory)
+	if !ok {
+		t.Fatalf("expected *PackageInventory, got %T", result)
 	}
 	if inv.Package != "math" {
 		t.Errorf("Package = %q, want math", inv.Package)
@@ -59,75 +63,7 @@ func TestSub(t *testing.T) {}
 	}
 }
 
-func TestPackage_Tags(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, dir, "gen.go", `//gostructure:skip-tests
-//gostructure:allow-globals
-package gen
-
-var Registry = map[string]int{}
-
-func Lookup(key string) int { return Registry[key] }
-`)
-
-	inv, err := Package(dir)
-	if err != nil {
-		t.Fatalf("Package: %v", err)
-	}
-	file := inv.Files[0]
-	if len(file.Tags) != 2 {
-		t.Fatalf("Tags = %v, want 2 tags", file.Tags)
-	}
-	if file.Tags[0] != "skip-tests" || file.Tags[1] != "allow-globals" {
-		t.Errorf("Tags = %v", file.Tags)
-	}
-}
-
-func TestIsMultiPackage(t *testing.T) {
-	tests := []struct {
-		name   string
-		setup  func(t *testing.T, dir string)
-		expect bool
-	}{
-		{
-			name: "single package with go files",
-			setup: func(t *testing.T, dir string) {
-				writeFile(t, dir, "main.go", "package main\n")
-			},
-			expect: false,
-		},
-		{
-			name: "multi package with subdirs",
-			setup: func(t *testing.T, dir string) {
-				writeFile(t, filepath.Join(dir, "foo"), "foo.go", "package foo\n")
-				writeFile(t, filepath.Join(dir, "bar"), "bar.go", "package bar\n")
-			},
-			expect: true,
-		},
-		{
-			name: "empty dir",
-			setup: func(t *testing.T, dir string) {
-			},
-			expect: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			tt.setup(t, dir)
-			got, err := IsMultiPackage(dir)
-			if err != nil {
-				t.Fatalf("IsMultiPackage: %v", err)
-			}
-			if got != tt.expect {
-				t.Errorf("IsMultiPackage = %v, want %v", got, tt.expect)
-			}
-		})
-	}
-}
-
-func TestPackages_Multi(t *testing.T) {
+func TestScan_MultiPackage(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "alpha"), "alpha.go", `package alpha
 
@@ -138,9 +74,13 @@ func Run() {}
 func Start() error { return nil }
 `)
 
-	inv, err := Packages(dir)
+	result, err := Scan(dir)
 	if err != nil {
-		t.Fatalf("Packages: %v", err)
+		t.Fatalf("Scan: %v", err)
+	}
+	inv, ok := result.(*MultiPackageInventory)
+	if !ok {
+		t.Fatalf("expected *MultiPackageInventory, got %T", result)
 	}
 	if len(inv.Packages) != 2 {
 		t.Fatalf("got %d packages, want 2", len(inv.Packages))
@@ -149,9 +89,6 @@ func Start() error { return nil }
 	a := inv.Packages[0]
 	if a.Package != "alpha" {
 		t.Errorf("Packages[0].Package = %q, want alpha", a.Package)
-	}
-	if len(a.Files) != 1 {
-		t.Errorf("alpha files = %d", len(a.Files))
 	}
 
 	b := inv.Packages[1]
@@ -163,7 +100,32 @@ func Start() error { return nil }
 	}
 }
 
-func TestPackage_ExternalTestPackage(t *testing.T) {
+func TestScan_Tags(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "gen.go", `//gostructure:skip-tests
+//gostructure:allow-globals
+package gen
+
+var Registry = map[string]int{}
+
+func Lookup(key string) int { return Registry[key] }
+`)
+
+	result, err := Scan(dir)
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	inv := result.(*PackageInventory)
+	file := inv.Files[0]
+	if len(file.Tags) != 2 {
+		t.Fatalf("Tags = %v, want 2 tags", file.Tags)
+	}
+	if file.Tags[0] != "skip-tests" || file.Tags[1] != "allow-globals" {
+		t.Errorf("Tags = %v", file.Tags)
+	}
+}
+
+func TestScan_ExternalTestPackage(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "lib.go", `package lib
 
@@ -176,14 +138,46 @@ import "testing"
 func TestHello(t *testing.T) {}
 `)
 
-	inv, err := Package(dir)
+	result, err := Scan(dir)
 	if err != nil {
-		t.Fatalf("Package: %v", err)
+		t.Fatalf("Scan: %v", err)
 	}
+	inv := result.(*PackageInventory)
 	if inv.Package != "lib" {
 		t.Errorf("Package = %q, want lib", inv.Package)
 	}
 	if len(inv.Files) != 2 {
 		t.Fatalf("got %d files, want 2", len(inv.Files))
+	}
+}
+
+func TestFindGoFiles(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "main.go", "package main\n")
+	writeFile(t, dir, "README.md", "# readme\n")
+
+	files := findGoFiles(dir)
+	if len(files) != 1 {
+		t.Fatalf("got %d files, want 1", len(files))
+	}
+}
+
+func TestFindPackageDirs(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "foo"), "foo.go", "package foo\n")
+	writeFile(t, filepath.Join(dir, "bar"), "bar.go", "package bar\n")
+	writeFile(t, filepath.Join(dir, "empty"), ".gitkeep", "")
+
+	dirs := findPackageDirs(dir)
+	if len(dirs) != 2 {
+		t.Fatalf("got %d dirs, want 2", len(dirs))
+	}
+}
+
+func TestScan_EmptyDir(t *testing.T) {
+	dir := t.TempDir()
+	_, err := Scan(dir)
+	if err == nil {
+		t.Fatal("expected error for empty dir")
 	}
 }

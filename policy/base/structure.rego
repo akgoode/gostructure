@@ -9,7 +9,7 @@ deny contains msg if {
 	some v in file.vars
 	v.name != "_"
 	not startswith(v.name, "Err")
-	msg := sprintf("%s:%d — package-level var '%s': avoid mutable global state", [file.name, v.line, v.name])
+	msg := sprintf("%s:%d — package-level var '%s': avoid mutable global state. Make this a const, move it inside the function that uses it, or return it from a constructor.", [file.name, v.line, v.name])
 }
 
 warn contains msg if {
@@ -17,7 +17,7 @@ warn contains msg if {
 	some t in file.types
 	t.kind == "interface"
 	count(t.methods) > 3
-	msg := sprintf("%s:%d — interface '%s' has %d methods (max 3)", [file.name, t.line, t.name, count(t.methods)])
+	msg := sprintf("%s:%d — interface '%s' has %d methods (max 3). Define smaller interfaces at the consumer — each caller should only depend on the methods it actually uses.", [file.name, t.line, t.name, count(t.methods)])
 }
 
 _file_tags(file) := file.tags if {

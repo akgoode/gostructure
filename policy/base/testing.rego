@@ -22,7 +22,7 @@ deny contains msg if {
 	file.name != "main.go"
 	expected := concat("", [trim_suffix(file.name, ".go"), "_test.go"])
 	not expected in test_files
-	msg := sprintf("%s — no matching test file (expected %s)", [file.name, expected])
+	msg := sprintf("%s — no matching test file (expected %s). Every source file needs a corresponding test file.", [file.name, expected])
 }
 
 test_funcs contains name if {
@@ -43,7 +43,7 @@ deny contains msg if {
 	f.name != "main"
 	expected := concat("", ["Test", f.name])
 	not expected in test_funcs
-	msg := sprintf("%s:%d — exported func '%s' has no test (expected %s)", [file.name, f.line, f.name, expected])
+	msg := sprintf("%s:%d — exported func '%s' has no test. Add %s to the test file.", [file.name, f.line, f.name, expected])
 }
 
 deny contains msg if {
@@ -55,7 +55,7 @@ deny contains msg if {
 	f.receiver != ""
 	expected := concat("", ["Test", f.receiver, "_", f.name])
 	not expected in test_funcs
-	msg := sprintf("%s:%d — exported method %s.%s has no test (expected %s)", [file.name, f.line, f.receiver, f.name, expected])
+	msg := sprintf("%s:%d — exported method %s.%s has no test. Add %s to the test file.", [file.name, f.line, f.receiver, f.name, expected])
 }
 
 _file_tags(file) := file.tags if {

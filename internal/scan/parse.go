@@ -2,9 +2,34 @@ package scan
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strings"
 )
+
+func parseGoFiles(paths []string) ([]FileInventory, string) {
+	fset := token.NewFileSet()
+	var files []FileInventory
+	var pkgName string
+
+	for _, path := range paths {
+		file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+		if err != nil {
+			continue
+		}
+		if name := file.Name.Name; !strings.HasSuffix(name, "_test") {
+			pkgName = name
+		}
+		files = append(files, inventoryFile(fset, filepath.Base(path), file))
+	}
+
+	if pkgName == "" && len(files) > 0 {
+		pkgName = strings.TrimSuffix(files[0].Name, "_test.go")
+	}
+
+	return files, pkgName
+}
 
 func inventoryFile(fset *token.FileSet, name string, file *ast.File) FileInventory {
 	return FileInventory{
