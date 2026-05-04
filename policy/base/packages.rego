@@ -16,14 +16,16 @@ layer_names := {
 
 # METADATA
 # title: Layer-named package
-# description: >
-#   Packages named after technical layers (handlers, services, repositories) group
-#   by role instead of by domain. Name packages after what they do.
+# description: >-
+#   Packages named after technical layers (handlers, services, repositories, utils)
+#   group code by architectural role instead of by domain. This creates grab-bag
+#   packages that grow unbounded. Name packages after what they do — orders, auth,
+#   billing — so a reader can find the right package by guessing its name.
 violation_layer_name contains obj if {
 	some pkg in input.packages
 	pkg.package in layer_names
 	obj := {
-		"msg": sprintf("%s — package named after a technical layer; name packages after what they do, not what architectural role they play", [pkg.path]),
+		"msg": sprintf("%s — package '%s' named after a technical layer. Name it after what it does.", [pkg.path, pkg.package]),
 		"rule_id": "GO-PKG-001",
 		"severity": "error",
 		"_loc": {"file": pkg.path},
@@ -32,14 +34,14 @@ violation_layer_name contains obj if {
 
 # METADATA
 # title: Package has no exported functions
-# description: >
+# description: >-
 #   Every package must export at least one function. A package with no public API
-#   is dead code or misplaced internal logic.
+#   is dead code or misplaced internal logic that should be merged into its caller.
 violation_no_exports contains obj if {
 	some pkg in input.packages
 	not _has_exported_func(pkg)
 	obj := {
-		"msg": sprintf("%s — package '%s' has no exported funcs; every package should provide at least one", [pkg.path, pkg.package]),
+		"msg": sprintf("%s — package '%s' has no exported funcs", [pkg.path, pkg.package]),
 		"rule_id": "GO-PKG-002",
 		"severity": "error",
 		"_loc": {"file": pkg.path},
@@ -48,11 +50,12 @@ violation_no_exports contains obj if {
 
 # METADATA
 # title: Too many packages in module
-# description: >
-#   Modules with more than 10 packages may benefit from consolidation.
+# description: >-
+#   Modules with more than 10 packages may have over-decomposed. Consider whether
+#   some packages are thin wrappers that should be consolidated with their callers.
 warn contains msg if {
 	count(input.packages) > 10
-	msg := sprintf("CONSIDER: module has %d packages — consider whether some can be consolidated", [count(input.packages)])
+	msg := sprintf("CONSIDER: module has %d packages (max 10). Consider consolidating.", [count(input.packages)])
 }
 
 _has_exported_func(pkg) if {
