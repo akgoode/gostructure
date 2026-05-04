@@ -21,6 +21,11 @@ public sealed class OrderService : IOrderService
     public Task<OrderResult> CreateOrder(CreateOrderRequest request) => throw new NotImplementedException();
     public Task<OrderResult?> GetOrder(Guid id) => throw new NotImplementedException();
     public Task<IReadOnlyList<OrderResult>> ListOrders(int page, int pageSize) => throw new NotImplementedException();
+
+    public Task<OrderResult> ImportOrder(
+        string externalId, string source, string productId,
+        int quantity, decimal price, string currency, DateTime importedAt)
+        => throw new NotImplementedException();
 }
 
 public class OrderServiceOptions
@@ -33,6 +38,10 @@ public interface IOrderRepository
 {
     Task<Order> Save(Order order);
     Task<Order?> FindById(Guid id);
+    Task<IReadOnlyList<Order>> FindByStatus(OrderStatus status);
+    Task<IReadOnlyList<Order>> FindByDateRange(DateTime from, DateTime to);
+    Task<int> Count();
+    Task Delete(Guid id);
 }
 
 public record CreateOrderRequest(string ProductId, int Quantity);
