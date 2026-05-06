@@ -155,3 +155,54 @@ violation_health_invalid_return contains obj if {
 		"_loc": {"file": file.name, "line": f.line},
 	}
 }
+
+# _pkg_imports collects every import path used by the package's non-test
+# files. Test files are excluded because the rule is about what the
+# production code imports — test fixtures may need different deps.
+_pkg_imports contains imp if {
+	some file in input.files
+	not file.is_test
+	some imp in file.imports
+}
+
+# _has_prom_import is true when any production file imports anything under
+# the prometheus/client_golang module — the canonical client/promhttp/testutil
+# subpackages all qualify.
+_has_prom_import if {
+	some imp in _pkg_imports
+	startswith(imp, "github.com/prometheus/client_golang/")
+}
+
+# METADATA
+# title: HTTP server package missing log/slog import
+# description: >-
+#   HTTP server packages must use log/slog for structured, request-scoped
+#   logging. The middleware chain attaches a per-request logger to context;
+#   handlers retrieve it for domain-level events. Without slog, logs become
+#   ad-hoc strings that can't be filtered, correlated, or shipped to a
+#   structured sink.
+violation_missing_required_import contains obj if {
+	not "log/slog" in _pkg_imports
+	obj := {
+		"msg": "HTTP server package must import log/slog for structured request-scoped logging.",
+		"rule_id": "GO-HTTP-006",
+		"severity": "error",
+	}
+}
+
+# METADATA
+# title: HTTP server package missing Prometheus client import
+# description: >-
+#   HTTP server packages must expose RED metrics (rate, errors, duration)
+#   via the github.com/prometheus/client_golang client. Any subpackage
+#   (prometheus, promhttp, testutil, etc.) satisfies this. Without it, the
+#   metrics middleware has no collector to register against and the /metrics
+#   endpoint cannot be wired.
+violation_missing_required_import contains obj if {
+	not _has_prom_import
+	obj := {
+		"msg": "HTTP server package must import github.com/prometheus/client_golang/* for RED metrics.",
+		"rule_id": "GO-HTTP-006",
+		"severity": "error",
+	}
+}
