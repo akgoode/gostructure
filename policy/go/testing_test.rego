@@ -211,3 +211,53 @@ test_skip_main_func if {
 	}]}
 	count(result) == 0
 }
+
+# Method test names must be valid Go test identifiers. Go rejects test
+# functions whose first character after "Test" is lowercase, so for
+# unexported receivers the policy must capitalize the receiver in the
+# expected name (statusRecorder.Write -> TestStatusRecorder_Write).
+test_unexported_receiver_capitalized_in_message if {
+	result := testing.violation_untested_method with input as {"files": [{
+		"name": "middleware.go",
+		"is_test": false,
+		"tags": [],
+		"imports": [],
+		"funcs": [{"name": "Write", "receiver": "statusRecorder", "exported": true, "params": [], "returns": [], "line": 20}],
+		"types": [],
+		"vars": [],
+		"consts": [],
+	}]}
+	count(result) == 1
+	some obj in result
+	contains(obj.msg, "TestStatusRecorder_Write")
+	not contains(obj.msg, "TeststatusRecorder_Write")
+}
+
+test_unexported_receiver_capitalized_match if {
+	# A test named TestStatusRecorder_Write should satisfy the rule for an
+	# Unexported receiver statusRecorder, exactly because go-test will only
+	# accept that capitalization.
+	result := testing.violation_untested_method with input as {"files": [
+		{
+			"name": "middleware.go",
+			"is_test": false,
+			"tags": [],
+			"imports": [],
+			"funcs": [{"name": "Write", "receiver": "statusRecorder", "exported": true, "params": [], "returns": [], "line": 20}],
+			"types": [],
+			"vars": [],
+			"consts": [],
+		},
+		{
+			"name": "middleware_test.go",
+			"is_test": true,
+			"tags": [],
+			"imports": [],
+			"funcs": [{"name": "TestStatusRecorder_Write", "receiver": "", "exported": true, "params": [], "returns": [], "line": 5}],
+			"types": [],
+			"vars": [],
+			"consts": [],
+		},
+	]}
+	count(result) == 0
+}
