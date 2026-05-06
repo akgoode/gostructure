@@ -259,12 +259,15 @@ test_warn_too_many_methods if {
 }
 
 test_warn_exported_struct_no_constructor if {
+	# Struct with an injected dep (*sql.DB) AND behavior (Start method) —
+	# without a constructor, every caller assembles it by hand. Methods are
+	# the signal that this is a service, not data.
 	result := structure.warn with input as {"files": [{
 		"name": "server.go",
 		"is_test": false,
 		"tags": [],
 		"imports": [],
-		"funcs": [],
+		"funcs": [{"name": "Start", "receiver": "Server", "exported": true, "params": [], "returns": [], "line": 30}],
 		"vars": [],
 		"consts": [],
 		"types": [{
@@ -285,7 +288,10 @@ test_no_warn_struct_with_constructor if {
 		"is_test": false,
 		"tags": [],
 		"imports": [],
-		"funcs": [{"name": "NewServer", "receiver": "", "exported": true, "params": [], "returns": [], "line": 20}],
+		"funcs": [
+			{"name": "NewServer", "receiver": "", "exported": true, "params": [], "returns": [], "line": 20},
+			{"name": "Start", "receiver": "Server", "exported": true, "params": [], "returns": [], "line": 30},
+		],
 		"vars": [],
 		"consts": [],
 		"types": [{
@@ -294,6 +300,35 @@ test_no_warn_struct_with_constructor if {
 			"exported": true,
 			"line": 5,
 			"fields": [{"name": "db", "type": "*sql.DB", "exported": false}],
+			"methods": [],
+		}],
+	}]}
+	not _any_contains(result, "no constructor")
+}
+
+# Pure data types — no methods, no behavior — are exempt. Product carries
+# package-qualified fields (time.Time) and a same-package value type
+# (Money), but is a plain DTO. A constructor would be ceremony around a
+# struct literal.
+test_no_warn_data_type_with_qualified_fields if {
+	result := structure.warn with input as {"files": [{
+		"name": "product.go",
+		"is_test": false,
+		"tags": [],
+		"imports": [],
+		"funcs": [],
+		"vars": [],
+		"consts": [],
+		"types": [{
+			"name": "Product",
+			"kind": "struct",
+			"exported": true,
+			"line": 5,
+			"fields": [
+				{"name": "ID", "type": "string", "exported": true},
+				{"name": "Price", "type": "Money", "exported": true},
+				{"name": "CreatedAt", "type": "time.Time", "exported": true},
+			],
 			"methods": [],
 		}],
 	}]}
