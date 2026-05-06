@@ -16,6 +16,7 @@ test-go:
 test-policies:
 	conftest verify -p policy/go
 	conftest verify -p policy/dotnet
+	conftest verify -p policy/backstage
 
 clean:
 	rm -f code-structure

@@ -115,11 +115,15 @@ warn contains msg if {
 # METADATA
 # title: Exported struct missing constructor
 # description: >-
-#   Exported structs with complex fields (pointers, external types, unexported fields)
-#   need a New* constructor to centralize initialization. Without one, every caller
-#   assembles the struct by hand, spreading initialization logic and risking forgotten
-#   required fields. The constructor is the single place that knows what a valid
-#   instance looks like.
+#   Exported structs that hold injected dependencies (pointer fields or unexported
+#   fields) AND carry behavior (have at least one method) need a New* constructor.
+#   The constructor centralizes initialization so every caller assembles the same
+#   valid instance.
+#
+#   Pure data types — domain values like Product, Money, request/response DTOs —
+#   are deliberately exempt: they have no methods, no invariants beyond JSON tags,
+#   and a constructor would be ceremony around a struct literal. The signal for
+#   "this is a service, not data" is the presence of methods.
 warn contains msg if {
 	some file in input.files
 	not file.is_test
@@ -127,6 +131,7 @@ warn contains msg if {
 	t.kind == "struct"
 	t.exported
 	t.name != "Config"
+	_method_count(t.name) > 0
 	_has_fields_needing_setup(t)
 	not _has_constructor_for(t.name)
 	msg := sprintf("SHOULD: %s:%d — exported struct '%s' has no constructor. Add New%s(cfg Config) (*%s, error).", [file.name, t.line, t.name, t.name, t.name])
@@ -146,14 +151,15 @@ _type_receivers contains t.name if {
 	t.kind == "struct"
 }
 
+# A struct has fields needing centralized setup if any field is a pointer
+# (likely an injected dependency) or unexported (an invariant the
+# constructor enforces). Package-qualified value types like time.Time or
+# decimal.Decimal are NOT signals on their own — they appear routinely on
+# pure data types and produced false positives in the previous version of
+# this rule.
 _has_fields_needing_setup(t) if {
 	some f in t.fields
 	startswith(f.type, "*")
-}
-
-_has_fields_needing_setup(t) if {
-	some f in t.fields
-	contains(f.type, ".")
 }
 
 _has_fields_needing_setup(t) if {
