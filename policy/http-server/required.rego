@@ -111,12 +111,20 @@ _struct_types_in_package contains name if {
 }
 
 # _returns_local_struct is true when any of f's return types matches a struct
-# defined in this package. Strips a leading `*` so pointer returns like
-# `*HealthStatus` resolve to the underlying struct name.
+# defined in this package. A single leading `*` is stripped so pointer returns
+# like `*HealthStatus` resolve to `HealthStatus`. Double-pointers (`**Foo`) are
+# left intact and will not match — those are pathological in real Go code and
+# do not satisfy the Health-contract intent of this rule.
 _returns_local_struct(f) if {
 	some r in f.returns
-	type_name := trim_left(r, "*")
-	type_name in _struct_types_in_package
+	r in _struct_types_in_package
+}
+
+_returns_local_struct(f) if {
+	some r in f.returns
+	startswith(r, "*")
+	not startswith(r, "**")
+	substring(r, 1, -1) in _struct_types_in_package
 }
 
 # METADATA
