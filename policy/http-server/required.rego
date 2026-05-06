@@ -98,3 +98,52 @@ violation_top_level_handler contains obj if {
 		"_loc": {"file": file.name, "line": f.line},
 	}
 }
+
+# _struct_types_in_package collects the names of all structs declared in the
+# package's non-test files. Used to verify that a function's return type is
+# a real struct defined here (not a primitive, map, slice, or external type).
+_struct_types_in_package contains name if {
+	some file in input.files
+	not file.is_test
+	some t in file.types
+	t.kind == "struct"
+	name := t.name
+}
+
+# _returns_local_struct is true when any of f's return types matches a struct
+# defined in this package. Strips a leading `*` so pointer returns like
+# `*HealthStatus` resolve to the underlying struct name.
+_returns_local_struct(f) if {
+	some r in f.returns
+	type_name := trim_left(r, "*")
+	type_name in _struct_types_in_package
+}
+
+# METADATA
+# title: Health does not return a struct
+# description: >-
+#   Health() must return a struct type defined in this package, not a string,
+#   map, error, or primitive. The struct is the contract callers program
+#   against — fields like Status, Version, Dependencies. A string or map
+#   loses the contract: callers can't pattern-match shape, the JSON envelope
+#   isn't pinned, and tests can't assert on field-by-field behavior.
+#
+#   Pointer returns (*HealthStatus) are accepted; multi-value returns are
+#   accepted as long as one of the returned types is a local struct.
+#
+#   This rule only fires when Health exists. If Health is missing entirely,
+#   GO-HTTP-003 fires instead.
+violation_health_invalid_return contains obj if {
+	some file in input.files
+	not file.is_test
+	some f in file.funcs
+	f.name == "Health"
+	f.exported
+	not _returns_local_struct(f)
+	obj := {
+		"msg": sprintf("%s:%d — Health() must return a struct type defined in this package (e.g. HealthStatus), not a primitive, map, or external type.", [file.name, f.line]),
+		"rule_id": "GO-HTTP-005",
+		"severity": "error",
+		"_loc": {"file": file.name, "line": f.line},
+	}
+}

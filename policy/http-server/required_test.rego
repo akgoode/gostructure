@@ -232,3 +232,98 @@ test_test_file_handlers_skipped if {
 	}]}
 	count(result) == 0
 }
+
+# GO-HTTP-005: Health() must return a struct type defined in the package.
+
+# Helper: build an input with a Health method whose returns array we control,
+# plus a HealthStatus struct so the package has a candidate to match against.
+_pkg_with_health(returns) := {"files": [{
+	"name": "health.go",
+	"is_test": false,
+	"tags": [],
+	"imports": [],
+	"funcs": [{
+		"name": "Health",
+		"receiver": "Server",
+		"exported": true,
+		"params": [],
+		"returns": returns,
+		"line": 12,
+	}],
+	"types": [{
+		"name": "HealthStatus",
+		"kind": "struct",
+		"exported": true,
+		"line": 5,
+		"fields": [],
+		"methods": [],
+	}],
+	"vars": [],
+	"consts": [],
+}]}
+
+test_health_returns_struct_passes if {
+	# Health() HealthStatus — the canonical shape.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["HealthStatus"])
+	count(result) == 0
+}
+
+test_health_returns_pointer_to_struct_passes if {
+	# Health() *HealthStatus — pointer to a local struct still counts.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["*HealthStatus"])
+	count(result) == 0
+}
+
+test_health_multireturn_passes if {
+	# Health() (HealthStatus, error) — multiple returns; one is the struct.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["HealthStatus", "error"])
+	count(result) == 0
+}
+
+test_health_returns_string_fires if {
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["string"])
+	count(result) == 1
+	some obj in result
+	obj.rule_id == "GO-HTTP-005"
+}
+
+test_health_returns_map_fires if {
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["map[string]string"])
+	count(result) == 1
+}
+
+test_health_returns_error_only_fires if {
+	# Returning only error is not a contract callers can program against.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["error"])
+	count(result) == 1
+}
+
+test_health_returns_external_type_fires if {
+	# A struct defined in another package isn't in this package's types
+	# inventory, so the rule fires. The intent: HTTP server packages own
+	# their health-shape contract.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health(["other.Status"])
+	count(result) == 1
+}
+
+test_health_no_return_fires if {
+	# Health() with no return at all — useless to callers.
+	result := httpserver.violation_health_invalid_return with input as _pkg_with_health([])
+	count(result) == 1
+}
+
+test_health_missing_does_not_fire if {
+	# When Health doesn't exist at all, GO-HTTP-003 handles that. GO-HTTP-005
+	# must stay silent so we don't double-report.
+	result := httpserver.violation_health_invalid_return with input as {"files": [{
+		"name": "server.go",
+		"is_test": false,
+		"tags": [],
+		"imports": [],
+		"funcs": [],
+		"types": [],
+		"vars": [],
+		"consts": [],
+	}]}
+	count(result) == 0
+}
