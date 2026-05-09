@@ -3,34 +3,6 @@ package packages_test
 import rego.v1
 import data.packages
 
-test_violation_layer_named_package if {
-	result := packages.violation_layer_name with input as {"packages": [{
-		"package": "handlers",
-		"path": "internal/handlers",
-		"files": [],
-	}]}
-	count(result) == 1
-	some obj in result
-	obj.rule_id == "GO-PKG-001"
-}
-
-test_allow_domain_named_package if {
-	result := packages.violation_layer_name with input as {"packages": [{
-		"package": "orders",
-		"path": "internal/orders",
-		"files": [],
-	}]}
-	count(result) == 0
-}
-
-test_violation_all_layer_names if {
-	names := ["handler", "handlers", "service", "services", "repository", "repositories", "store", "stores", "controller", "controllers", "model", "models", "util", "utils", "helper", "helpers", "common"]
-	every name in names {
-		r := packages.violation_layer_name with input as {"packages": [{"package": name, "path": sprintf("internal/%s", [name]), "files": []}]}
-		count(r) > 0
-	}
-}
-
 test_violation_no_exported_funcs if {
 	result := packages.violation_no_exports with input as {"packages": [{
 		"package": "internal",

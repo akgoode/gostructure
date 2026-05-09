@@ -2,36 +2,6 @@ package packages
 
 import rego.v1
 
-layer_names := {
-	"handler", "handlers",
-	"service", "services",
-	"repository", "repositories",
-	"store", "stores",
-	"controller", "controllers",
-	"model", "models",
-	"util", "utils",
-	"helper", "helpers",
-	"common",
-}
-
-# METADATA
-# title: Layer-named package
-# description: >-
-#   Packages named after technical layers (handlers, services, repositories, utils)
-#   group code by architectural role instead of by domain. This creates grab-bag
-#   packages that grow unbounded. Name packages after what they do — orders, auth,
-#   billing — so a reader can find the right package by guessing its name.
-violation_layer_name contains obj if {
-	some pkg in input.packages
-	pkg.package in layer_names
-	obj := {
-		"msg": sprintf("%s — package '%s' named after a technical layer. Name it after what it does.", [pkg.path, pkg.package]),
-		"rule_id": "GO-PKG-001",
-		"severity": "error",
-		"_loc": {"file": pkg.path},
-	}
-}
-
 # METADATA
 # title: Package has no exported functions
 # description: >-
