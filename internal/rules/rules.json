@@ -1,0 +1,192 @@
+[
+  {
+    "id": "GO-CFG-001",
+    "severity": "error",
+    "category": "config",
+    "title": "Missing Config struct",
+    "description": "Packages with a constructor (New*) must export a Config struct. The caller builds it from env vars, flags, or hardcoded values in tests. The package never reaches outward for configuration."
+  },
+  {
+    "id": "GO-CFG-002",
+    "severity": "error",
+    "category": "config",
+    "title": "Constructor does not accept Config",
+    "description": "When both a Config struct and constructor exist, the constructor must accept Config as a parameter. Signature: New(cfg Config) (*T, error)."
+  },
+  {
+    "id": "GO-ERR-001",
+    "severity": "error",
+    "category": "errors",
+    "title": "Missing domain error types",
+    "description": "Packages with exported functions that return error must define domain error types — either sentinel errors (var ErrNotFound) or custom error types (type ValidationError struct)."
+  },
+  {
+    "id": "GO-IMP-001",
+    "severity": "error",
+    "category": "imports",
+    "title": "Test package in production code",
+    "description": "Test frameworks (testify, gomock) must not be imported in non-test files."
+  },
+  {
+    "id": "GO-IMP-002",
+    "severity": "warning",
+    "category": "imports",
+    "title": "Too many imports",
+    "description": "Files importing more than 8 packages are pulling in too many concerns.",
+    "rationale": "Each import is a dependency on someone else's API, behavior, and release cycle. A file that imports both database drivers and HTTP routers is doing two jobs.",
+    "exceptions": "Composition roots (main.go, wire.go) legitimately import many packages to assemble the dependency graph. Entry points that register routes or configure middleware will naturally have high import counts.",
+    "judgment": "Check whether the file is a composition root or entry point. If so, this is expected. If it's a domain file, look for import clusters that suggest the file should be split."
+  },
+  {
+    "id": "GO-PKG-001",
+    "severity": "error",
+    "category": "packages",
+    "title": "Layer-named package",
+    "description": "Packages named after technical layers (handlers, services, repositories, utils) group code by role instead of by domain. Name packages after what they do."
+  },
+  {
+    "id": "GO-PKG-002",
+    "severity": "error",
+    "category": "packages",
+    "title": "Package has no exported functions",
+    "description": "Every package must export at least one function. A package with no public API is dead code or misplaced internal logic."
+  },
+  {
+    "id": "GO-PKG-003",
+    "severity": "warning",
+    "category": "packages",
+    "title": "Too many packages in module",
+    "description": "Modules with more than 10 packages may have over-decomposed.",
+    "rationale": "Each package is a compilation unit and an API boundary. Too many thin packages create navigation overhead and often indicate premature abstraction.",
+    "exceptions": "Modules with genuinely distinct domains (e.g., a monorepo with orders, billing, auth) will naturally exceed this. The threshold assumes a single-domain service.",
+    "judgment": "Count how many packages have real business logic vs. how many are thin wrappers or type-only packages. If most are substantial, the count is justified."
+  },
+  {
+    "id": "GO-STRUCT-001",
+    "severity": "error",
+    "category": "structure",
+    "title": "No global mutable variables",
+    "description": "Package-level vars create hidden coupling and race conditions. Use const, move to function scope, or return from constructor. Exempt: error sentinels (Err*) and throwaway (_)."
+  },
+  {
+    "id": "GO-STRUCT-002",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Interface too large",
+    "description": "Interfaces with more than 5 methods create tight coupling.",
+    "rationale": "Every implementation must satisfy every method, and every consumer depends on methods it doesn't call. In tests, you mock methods you don't exercise. The Go standard library's most powerful interfaces are 1-3 methods.",
+    "exceptions": "Thin CRUD services where the consumer's method count is proportional to the interface size — each handler delegates to 1-3 interface methods, and the service uses all interface methods across its handlers. The interface is large because the service legitimately covers many operations, not because the interface is poorly scoped.",
+    "judgment": "Compare the interface method count to the consuming struct's method count. If they're proportional (e.g., 11-method interface on a 12-method service) and each service method is a short delegation, the interface is justified. If the consumer only uses a fraction of the methods, split into consumer-specific slices."
+  },
+  {
+    "id": "GO-STRUCT-003",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Too many functions in file",
+    "description": "Files with more than 10 non-test functions are doing too many things.",
+    "rationale": "Each file should represent one concept. Large files make it hard to find what you're looking for and tend to accumulate unrelated responsibilities.",
+    "exceptions": "Files that define a type and all its methods will naturally have many functions if the type has a broad API. A file with 12 methods on one receiver is more cohesive than a file with 8 unrelated free functions.",
+    "judgment": "Check whether the functions share a receiver or form a pipeline. If they all serve one type, the file is cohesive despite the count. If they're unrelated free functions, split by concept."
+  },
+  {
+    "id": "GO-STRUCT-004",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Too many function parameters",
+    "description": "Functions with more than 4 parameters are hard to call correctly and test exhaustively.",
+    "rationale": "The combinatorial state space grows with each parameter. Callers have to remember argument order. Named fields in a struct are self-documenting.",
+    "exceptions": "Constructors that accept multiple dependencies via dependency injection. If each parameter is a distinct interface (not data), grouping them into a config struct may obscure the dependency graph rather than clarify it.",
+    "judgment": "Check whether the parameters are data (strings, ints, options) or dependencies (interfaces). Data parameters that travel together should become a struct. Dependency parameters in a constructor are often fine as-is if each is a distinct concern."
+  },
+  {
+    "id": "GO-STRUCT-005",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Too many return values",
+    "description": "Functions returning more than 2 values force callers to juggle multiple results.",
+    "rationale": "Go convention is (result, error). Beyond that, the function is computing multiple things and the caller destructures them all. Named return types in a struct are self-documenting.",
+    "exceptions": "Repository list methods that return (items, totalCount, hasMore, error) are a common pattern where each value serves a distinct pagination purpose. Wrapping them in a struct is fine but not always worth the abstraction.",
+    "judgment": "If the extra returns are pagination metadata (count, hasMore, cursor), the pattern is well-understood and widely used. If they're unrelated values, wrap in a struct."
+  },
+  {
+    "id": "GO-STRUCT-006",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Struct has too many fields",
+    "description": "Structs with more than 8 fields represent too many concepts. Config structs are exempt.",
+    "rationale": "Each field multiplies the state space. Large structs tend to accumulate unrelated responsibilities. Look for fields that cluster together.",
+    "exceptions": "Service structs that hold many injected dependencies. If each field is a distinct interface dependency, the struct is a composition root for that service — the field count reflects the service's integration surface, not poor cohesion.",
+    "judgment": "Check whether the fields cluster into groups. If you can name the groups (e.g., 'cache dependencies' vs. 'database dependencies'), they should be sub-types. If each field is a distinct dependency with no natural grouping, the count may be inherent to the service's scope."
+  },
+  {
+    "id": "GO-STRUCT-007",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Type has too many methods",
+    "description": "Types with more than 10 methods accumulate too many responsibilities.",
+    "rationale": "Method clusters that serve different purposes indicate the type is doing too many things. Extract clusters into separate types and delegate.",
+    "exceptions": "CRUD service types that handle create, get, update, delete, list plus a few variants (getByEmail, addRole, etc.). Each method is a thin handler; the type's cohesion comes from operating on one domain entity.",
+    "judgment": "Check whether the methods form distinct clusters (e.g., read operations vs. write operations vs. admin operations). If they do, extract. If every method is a short handler for the same entity, the type is a CRUD facade and the count is proportional to the API surface."
+  },
+  {
+    "id": "GO-STRUCT-008",
+    "severity": "warning",
+    "category": "structure",
+    "title": "Exported struct missing constructor",
+    "description": "Exported structs with injected dependencies and behavior need a New* constructor to centralize initialization.",
+    "rationale": "Without a constructor, every caller assembles the struct differently. The constructor is the single place that enforces valid initialization. Pure data types (no methods) are exempt.",
+    "exceptions": "Structs that are intentionally assembled by a code generator or framework (e.g., ORM entities, protobuf messages). If the struct's fields are all exported and there are no invariants to enforce, a constructor adds ceremony without value.",
+    "judgment": "Check whether the struct has unexported fields or pointer dependencies. If so, a constructor is needed to enforce valid setup. If all fields are exported value types, the struct is a data type and direct initialization is fine."
+  },
+  {
+    "id": "GO-TEST-001",
+    "severity": "error",
+    "category": "testing",
+    "title": "Missing test file",
+    "description": "Every non-test source file must have a corresponding _test.go file. Use //codestructure:skip-tests to exempt declarative files."
+  },
+  {
+    "id": "GO-TEST-002",
+    "severity": "error",
+    "category": "testing",
+    "title": "Exported function has no test",
+    "description": "Every exported top-level function must have a Test<FuncName> test. Respects skip-tests tag."
+  },
+  {
+    "id": "GO-TEST-003",
+    "severity": "error",
+    "category": "testing",
+    "title": "Exported method has no test",
+    "description": "Every exported method must have a Test<Receiver>_<Method> test. Respects skip-tests tag."
+  },
+  {
+    "id": "GO-LAY-001",
+    "severity": "warning",
+    "category": "layout",
+    "title": "shared/ package too large",
+    "description": "The shared kernel should stay thin — 6 non-test files max.",
+    "rationale": "Shared packages become a dumping ground for anything that doesn't obviously belong elsewhere. Once they grow, every package depends on them and they're impossible to refactor.",
+    "exceptions": "Projects with a deliberately large shared kernel (middleware, error types, response helpers, auth utilities) where the team has decided to centralize cross-cutting concerns.",
+    "judgment": "Check whether the files in shared/ are genuinely cross-cutting (middleware, error types, response format) or whether domain-specific logic has leaked in. If you can name a domain for any file, it should move to that domain's package."
+  },
+  {
+    "id": "GO-LAY-002",
+    "severity": "warning",
+    "category": "layout",
+    "title": "Domain package missing expected files",
+    "description": "Domain packages with a constructor are expected to have service.go and models.go.",
+    "rationale": "Consistent file layout makes navigation predictable. A reader can open any domain package and find the business logic in service.go and the types in models.go.",
+    "exceptions": "Infrastructure packages (database, cache, messaging, middleware) that sit under internal/ but aren't domain packages. They follow their own conventions — a redis package has client.go, not service.go. Also, small packages where the domain logic and types fit in a single file.",
+    "judgment": "Check whether the package is a domain package (business logic) or an infrastructure adapter (wraps an external system). Infrastructure packages should not be expected to follow domain file layout. Also check package size — a 2-file package doesn't need the full layout."
+  },
+  {
+    "id": "GO-LAY-003",
+    "severity": "warning",
+    "category": "layout",
+    "title": "Package outside expected directories",
+    "description": "Packages outside cmd/, api/, internal/, gen/, and client/ are importable by other modules.",
+    "rationale": "Code under internal/ is protected from external import. Code outside it becomes part of the module's public API, which constrains refactoring and creates backwards compatibility obligations.",
+    "exceptions": "Standalone scripts, migration runners, or seed tools that are intentionally separate entry points (like a migrations/ or scripts/ directory with main packages). Also, SDK packages in pkg/ for projects that follow that convention.",
+    "judgment": "Check whether the package is a main package (entry point) or a library. Entry points outside the standard directories are fine if they're build targets. Library code should move under internal/ unless it's intentionally exported."
+  }
+]

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/akgoode/code-structure/internal/rules"
@@ -51,7 +50,7 @@ func listRules() error {
 }
 
 func showRule(id string) error {
-	r, ok := rules.Get(strings.ToUpper(id))
+	r, ok := rules.Get(id)
 	if !ok {
 		return fmt.Errorf("unknown rule: %s", id)
 	}
