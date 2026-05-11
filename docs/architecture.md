@@ -18,10 +18,11 @@ graph LR
 
     subgraph "Policy Engine"
         Conftest["conftest"]
-        GoPolicies["policy/go/<br/>(6 Rego files)"]
+        GoPolicies["policy/go/package/<br/>(6 Rego files)"]
         DotnetPolicies["policy/dotnet/<br/>(4 Rego files)"]
         HTTPPolicies["policy/http-server/<br/>(1 Rego file)"]
         WorkerPolicies["policy/worker/<br/>(1 Rego file)"]
+        GoAppPolicies["policy/go/app/<br/>(1 Rego file)"]
     end
 
     GoSource["Go Source<br/>Directory"] --> GoCmd
@@ -39,6 +40,7 @@ graph LR
     Conftest --> DotnetPolicies
     Conftest --> HTTPPolicies
     Conftest --> WorkerPolicies
+    Conftest --> GoAppPolicies
 
     Conftest --> Results["Violations &<br/>Warnings"]
 ```
@@ -51,8 +53,8 @@ The Go scanner uses the `go/ast` and `go/parser` standard library packages to an
 
 1. **Discovery** (`discover.go`) — determines what to scan:
    - If the target directory contains `.go` files directly, scan that single package
-   - If not, scan one level of subdirectories that contain `.go` files
-   - Does **not** recurse deeper than one level — this is intentional to match Go's package-per-directory model
+   - If not, recursively walk the directory tree to find all subdirectories containing `.go` files
+   - Skips hidden directories, `vendor/`, `testdata/`, and `node_modules/`
 
 2. **Parsing** (`parse.go`) — for each `.go` file:
    - Parses the AST using `go/parser.ParseFile` with comments enabled
@@ -66,7 +68,7 @@ The Go scanner uses the `go/ast` and `go/parser` standard library packages to an
 ### Key Design Decisions
 
 - **AST-only, no type checker**: the scanner deliberately avoids `go/types` to stay fast and avoid needing module dependencies to be available. Trade-off: it can't resolve cross-package types.
-- **Shallow scan depth**: scanning only one level of subdirectories keeps the scope predictable and maps cleanly to individual packages. Users who need deeper scans run the tool on each package directory.
+- **Recursive discovery**: multi-package mode recursively walks the directory tree, enabling app-level layout policies that reason about the full project structure (import direction, folder conventions).
 - **Tags as escape hatches**: the `//codestructure:` comment system lets individual files opt out of specific policies without disabling the policy globally.
 
 ## .NET Scanner (`internal/dotnetscan/` + `tools/dotnet-scanner/`)
@@ -109,7 +111,8 @@ Each violation object includes a `rule_id`, `severity`, and `msg` for machine-re
 
 The policy files expect specific input shapes:
 
-- **Go policies** expect `input.files` (single package) or `input.packages` (multi-package)
+- **Go per-package policies** (`policy/go/package/`) expect `input.files` (single package) or `input.packages` (multi-package)
+- **Go app-level policies** (`policy/go/app/`) expect `input.packages` (full project tree scan)
 - **.NET policies** expect `input.namespaces` with nested `types`, `methods`, `properties`, `fields`
 - **HTTP Server / Worker** policies expect `input.files` (single package) and check for required exported functions
 

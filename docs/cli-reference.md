@@ -9,9 +9,9 @@ Scans Go packages in the target directory into a structural JSON inventory.
 **Scan Depth Behavior:**
 
 - If `<directory>` contains `.go` files directly → scans that single package, returns a `PackageInventory`
-- If `<directory>` has no `.go` files but has subdirectories with `.go` files → scans one level of subdirectories, returns a `MultiPackageInventory`
-- Does **not** recurse deeper than one level of subdirectories
-- Returns an error if no Go files are found at either level
+- If `<directory>` has no `.go` files but has subdirectories with `.go` files → recursively walks the full directory tree, returns a `MultiPackageInventory`
+- Skips hidden directories (`.`-prefixed), `vendor/`, `testdata/`, and `node_modules/`
+- Returns an error if no Go files are found
 
 ```bash
 # Single package
@@ -21,6 +21,10 @@ code-structure go ./internal/goscan
 # Multiple packages (directory of packages)
 code-structure go ./internal
 # Output: MultiPackageInventory (array wrapper)
+
+# Full project tree (for app-level layout policies)
+code-structure go .
+# Output: MultiPackageInventory (all packages in the project)
 ```
 
 ### `code-structure dotnet <assembly.dll>`
@@ -179,8 +183,8 @@ Tags must appear as standalone comments (not inline). Multiple tags can be place
 
 | Tag | Effect | Used By |
 |-----|--------|---------|
-| `skip-tests` | Exempts the file from test coverage rules (GO-TEST-001, GO-TEST-002, GO-TEST-003) | `policy/go/testing.rego` |
-| `allow-globals` | Exempts the file from the no-global-variables rule (GO-STRUCT-001) | `policy/go/structure.rego` |
+| `skip-tests` | Exempts the file from test coverage rules (GO-TEST-001, GO-TEST-002, GO-TEST-003) | `policy/go/package/testing.rego` |
+| `allow-globals` | Exempts the file from the no-global-variables rule (GO-STRUCT-001) | `policy/go/package/structure.rego` |
 
 ### Writing Custom Tags
 
@@ -207,6 +211,9 @@ code-structure go ./pkg/myservice | conftest test -p policy/go -p policy/http-se
 # Go — worker overlay
 code-structure go ./pkg/myworker | conftest test -p policy/go -p policy/worker --no-fail -
 
+# Go — app-level layout (full project tree, included in -p policy/go)
+code-structure go . | conftest test -p policy/go --no-fail -
+
 # .NET — general policies
 code-structure dotnet ./bin/MyService.dll | conftest test -p policy/dotnet --no-fail -
 ```
@@ -223,4 +230,7 @@ code-structure go ./pkg/api | conftest test -p policy/go -p policy/http-server -
 
 # Validate as a worker
 code-structure go ./pkg/consumer | conftest test -p policy/go -p policy/worker -
+
+# Validate project-wide layout (import direction, folder structure)
+code-structure go . | conftest test -p policy/go -
 ```

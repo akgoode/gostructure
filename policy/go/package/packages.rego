@@ -26,6 +26,7 @@ layer_names := {
 violation_layer_name contains obj if {
 	some pkg in input.packages
 	pkg.package in layer_names
+	_is_top_level_internal(pkg)
 	obj := {
 		"msg": sprintf("%s — package '%s' named after a technical layer. Name it after what it does.", [pkg.path, pkg.package]),
 		"rule_id": "GO-PKG-001",
@@ -41,6 +42,7 @@ violation_layer_name contains obj if {
 #   is dead code or misplaced internal logic that should be merged into its caller.
 violation_no_exports contains obj if {
 	some pkg in input.packages
+	pkg.package != "main"
 	not _has_exported_func(pkg)
 	obj := {
 		"msg": sprintf("%s — package '%s' has no exported funcs", [pkg.path, pkg.package]),
@@ -64,4 +66,12 @@ _has_exported_func(pkg) if {
 	some file in pkg.files
 	some f in file.funcs
 	f.exported
+}
+
+# True when a package sits directly under an internal/ directory —
+# i.e. the second-to-last path segment is "internal".
+_is_top_level_internal(pkg) if {
+	segments := split(pkg.path, "/")
+	count(segments) >= 2
+	segments[count(segments) - 2] == "internal"
 }

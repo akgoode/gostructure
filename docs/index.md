@@ -30,7 +30,7 @@ The tool ships with four policy categories, each targeting a different concern:
 
 | Category | Path | Target | Rules |
 |----------|------|--------|-------|
-| **Go** | `policy/go/` | Go packages | Config, errors, imports, packages, structure, testing |
+| **Go** | `policy/go/` | Go packages | Config, errors, imports, packages, structure, testing, app layout |
 | **.NET** | `policy/dotnet/` | .NET assemblies | Config, errors, namespaces, structure |
 | **HTTP Server** | `policy/http-server/` | Go HTTP servers | Required constructor, routes, health check |
 | **Worker** | `policy/worker/` | Go workers | Required constructor, RunOnce |

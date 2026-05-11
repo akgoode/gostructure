@@ -5,7 +5,7 @@ Complete catalog of all OPA/Conftest policy rules shipped with code-structure. R
 - **Error** (`violation_*` rules) — structural problems that must be fixed; conftest treats these as failures
 - **Warning** (`warn` rules) — suggestions worth considering; conftest prints them but exits zero
 
-## Go Policies (`policy/go/`)
+## Go Policies (`policy/go/package/`)
 
 ### Configuration (`config.rego`)
 
@@ -93,6 +93,17 @@ Applies to `MultiPackageInventory` input (multi-package scans).
 | — | warning | Too many fields on type | Classes with more than 8 fields (Options/Config/Settings exempt). Extract field clusters. |
 | — | warning | Prefer sealed classes | Public non-abstract classes that are not sealed. Seal by default. Exception types and Options/Config/Settings classes exempt. |
 
+## Go App Layout Policies (`policy/go/app/`)
+
+Project-wide layout rules that validate folder structure. Run against the full project tree with `code-structure go .`.
+
+### Layout (`layout.rego`)
+
+| Rule ID | Severity | Title | Description |
+|---------|----------|-------|-------------|
+| — | warning | shared/ package too large | Packages under `shared/` with more than 6 non-test files. Move domain-specific logic into its own package. |
+| — | warning | Domain package missing expected files | Top-level domain packages under `internal/` (excluding `shared/`) with a constructor should have `service.go`, `models.go`, and `handler.go` or `worker.go`. Sub-packages within a domain are exempt. |
+
 ## HTTP Server Policies (`policy/http-server/`)
 
 Opt-in overlay for Go HTTP server packages. Apply with `-p policy/http-server` in addition to `-p policy/go`.
@@ -118,6 +129,7 @@ Policy rules themselves are tested with `conftest verify`. The Makefile runs:
 
 ```bash
 conftest verify -p policy/go
+conftest verify -p policy/go/app
 conftest verify -p policy/dotnet
 ```
 

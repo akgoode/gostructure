@@ -105,7 +105,7 @@ dotnet --version
 
 ### Specific policy directories not tested
 
-The default `make test-policies` only tests `policy/go/` and `policy/dotnet/`. The HTTP Server and Worker policy tests must be run separately:
+The default `make test-policies` only tests `policy/go/` (including `package/` and `app/` subdirectories) and `policy/dotnet/`. The HTTP Server and Worker policy tests must be run separately:
 
 ```bash
 conftest verify -p policy/http-server
