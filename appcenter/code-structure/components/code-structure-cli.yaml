@@ -1,0 +1,30 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: code-structure-cli
+  title: Code Structure CLI
+  description: >-
+    Go CLI tool that scans Go packages and .NET assemblies into structural JSON
+    inventories for consumption by OPA/Conftest policy rules. Supports two
+    subcommands: `go` for Go source analysis and `dotnet` for .NET assembly
+    reflection via a companion scanner binary.
+  annotations:
+    github.com/project-slug: Echo-Global-Logistics-Inc/code-structure
+    backstage.io/source-location: url:https://github.com/Echo-Global-Logistics-Inc/code-structure/tree/main/cmd/code-structure
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - go
+    - cli
+    - opa
+    - conftest
+    - code-analysis
+  links:
+    - url: https://github.com/Echo-Global-Logistics-Inc/code-structure
+      title: GitHub Repository
+      icon: code
+spec:
+  type: tool
+  lifecycle: experimental
+  owner: domain_platform
+  system: code-structure

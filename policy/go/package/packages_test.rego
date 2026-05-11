@@ -14,6 +14,15 @@ test_violation_layer_named_package if {
 	obj.rule_id == "GO-PKG-001"
 }
 
+test_allow_layer_name_in_subdomain if {
+	result := packages.violation_layer_name with input as {"packages": [{
+		"package": "service",
+		"path": "internal/product/service",
+		"files": [],
+	}]}
+	count(result) == 0
+}
+
 test_allow_domain_named_package if {
 	result := packages.violation_layer_name with input as {"packages": [{
 		"package": "orders",
@@ -48,6 +57,23 @@ test_violation_no_exported_funcs if {
 	count(result) == 1
 	some obj in result
 	obj.rule_id == "GO-PKG-002"
+}
+
+test_allow_main_package_no_exports if {
+	result := packages.violation_no_exports with input as {"packages": [{
+		"package": "main",
+		"path": "cmd/catalog-api",
+		"files": [{
+			"name": "main.go",
+			"is_test": false,
+			"funcs": [{"name": "main", "exported": false, "receiver": "", "params": [], "returns": [], "line": 10}],
+			"types": [],
+			"vars": [],
+			"consts": [],
+			"imports": [],
+		}],
+	}]}
+	count(result) == 0
 }
 
 test_allow_package_with_exports if {

@@ -67,12 +67,27 @@ violation_untested_func contains obj if {
 	}
 }
 
+# _test_name_for builds the expected test function name for a method on a
+# receiver type. The first character of the receiver is capitalized so the
+# generated name is a valid Go test identifier — Go's `go test` rejects
+# `Test<lowercase>...` as malformed. This means unexported receiver types
+# (e.g. statusRecorder) get tests named TestStatusRecorder_WriteHeader.
+_test_name_for(receiver, method) := concat("", [
+	"Test",
+	upper(substring(receiver, 0, 1)),
+	substring(receiver, 1, -1),
+	"_",
+	method,
+])
+
 # METADATA
 # title: Exported method has no test
 # description: >-
 #   Every exported method must have a Test<Receiver>_<Method> test function.
 #   This naming convention makes it trivial to find the test for any method.
-#   Respects the skip-tests tag.
+#   For unexported receiver types the receiver name is capitalized in the
+#   test name so the result is a valid Go test identifier. Respects the
+#   skip-tests tag.
 violation_untested_method contains obj if {
 	some file in input.files
 	not file.is_test
@@ -80,7 +95,7 @@ violation_untested_method contains obj if {
 	some f in file.funcs
 	f.exported
 	f.receiver != ""
-	expected := concat("", ["Test", f.receiver, "_", f.name])
+	expected := _test_name_for(f.receiver, f.name)
 	not expected in _found_test_funcs
 	obj := {
 		"msg": sprintf("%s:%d — %s.%s untested. Add %s.", [file.name, f.line, f.receiver, f.name, expected]),

@@ -1,0 +1,12 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: code-structure
+  title: Code Structure Analyzer
+  description: Backstage catalog entities for the code-structure repository
+  annotations:
+    github.com/project-slug: Echo-Global-Logistics-Inc/code-structure
+spec:
+  targets:
+    - ./code-structure/**/*.yaml
