@@ -13,7 +13,7 @@ warn contains msg if {
 	some file in input.files
 	not file.is_test
 	count(file.imports) > 8
-	msg := sprintf("CONSIDER: %s — %d imports (max 8). Split file by concept.", [file.name, count(file.imports)])
+	msg := sprintf("GO-IMP-002: %s — %d imports (max 8). Split file by concept.", [file.name, count(file.imports)])
 }
 
 _test_packages := {

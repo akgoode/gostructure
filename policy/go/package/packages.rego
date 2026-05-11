@@ -59,7 +59,7 @@ violation_no_exports contains obj if {
 #   some packages are thin wrappers that should be consolidated with their callers.
 warn contains msg if {
 	count(input.packages) > 10
-	msg := sprintf("CONSIDER: module has %d packages (max 10). Consider consolidating.", [count(input.packages)])
+	msg := sprintf("GO-PKG-003: module has %d packages (max 10). Consider consolidating.", [count(input.packages)])
 }
 
 _has_exported_func(pkg) if {
