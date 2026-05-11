@@ -36,7 +36,7 @@ warn contains msg if {
 	some t in file.types
 	t.kind == "interface"
 	count(t.methods) > 5
-	msg := sprintf("CONSIDER: %s:%d — interface '%s' has %d methods (max 5). Split into consumer-specific interfaces.", [file.name, t.line, t.name, count(t.methods)])
+	msg := sprintf("GO-STRUCT-002: %s:%d — interface '%s' has %d methods (max 5). Split into consumer-specific interfaces.", [file.name, t.line, t.name, count(t.methods)])
 }
 
 # METADATA
@@ -51,7 +51,7 @@ warn contains msg if {
 	not file.is_test
 	funcs := [f | some f in file.funcs; not startswith(f.name, "Test")]
 	count(funcs) > 10
-	msg := sprintf("SHOULD: %s — %d functions (max 10). Split by concept.", [file.name, count(funcs)])
+	msg := sprintf("GO-STRUCT-003: %s — %d functions (max 10). Split by concept.", [file.name, count(funcs)])
 }
 
 # METADATA
@@ -65,7 +65,7 @@ warn contains msg if {
 	not file.is_test
 	some f in file.funcs
 	count(f.params) > 4
-	msg := sprintf("SHOULD: %s:%d — %s has %d params (max 4). Group into a struct.", [file.name, f.line, f.name, count(f.params)])
+	msg := sprintf("GO-STRUCT-004: %s:%d — %s has %d params (max 4). Group into a struct.", [file.name, f.line, f.name, count(f.params)])
 }
 
 # METADATA
@@ -79,7 +79,7 @@ warn contains msg if {
 	not file.is_test
 	some f in file.funcs
 	count(f.returns) > 2
-	msg := sprintf("SHOULD: %s:%d — %s returns %d values (max 2). Wrap in a struct.", [file.name, f.line, f.name, count(f.returns)])
+	msg := sprintf("GO-STRUCT-005: %s:%d — %s returns %d values (max 2). Wrap in a struct.", [file.name, f.line, f.name, count(f.returns)])
 }
 
 # METADATA
@@ -96,7 +96,7 @@ warn contains msg if {
 	t.kind == "struct"
 	t.name != "Config"
 	count(t.fields) > 8
-	msg := sprintf("SHOULD: %s:%d — struct '%s' has %d fields (max 8). Extract field clusters into sub-types.", [file.name, t.line, t.name, count(t.fields)])
+	msg := sprintf("GO-STRUCT-006: %s:%d — struct '%s' has %d fields (max 8). Extract field clusters into sub-types.", [file.name, t.line, t.name, count(t.fields)])
 }
 
 # METADATA
@@ -109,7 +109,7 @@ warn contains msg if {
 	some receiver in _type_receivers
 	mc := _method_count(receiver)
 	mc > 10
-	msg := sprintf("CONSIDER: type '%s' has %d methods (max 10). Extract method clusters into separate types.", [receiver, mc])
+	msg := sprintf("GO-STRUCT-007: type '%s' has %d methods (max 10). Extract method clusters into separate types.", [receiver, mc])
 }
 
 # METADATA
@@ -134,7 +134,7 @@ warn contains msg if {
 	_method_count(t.name) > 0
 	_has_fields_needing_setup(t)
 	not _has_constructor_for(t.name)
-	msg := sprintf("SHOULD: %s:%d — exported struct '%s' has no constructor. Add New%s(cfg Config) (*%s, error).", [file.name, t.line, t.name, t.name, t.name])
+	msg := sprintf("GO-STRUCT-008: %s:%d — exported struct '%s' has no constructor. Add New%s(cfg Config) (*%s, error).", [file.name, t.line, t.name, t.name, t.name])
 }
 
 _method_count(receiver) := count([f |

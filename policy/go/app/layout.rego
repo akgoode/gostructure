@@ -14,7 +14,7 @@ warn contains msg if {
 	_is_shared_package(pkg)
 	non_test := [f | some f in pkg.files; not f.is_test]
 	count(non_test) > 6
-	msg := sprintf("CONSIDER: %s — shared package has %d non-test files (max 6). Move domain-specific code into its own package.", [pkg.path, count(non_test)])
+	msg := sprintf("GO-LAY-001: %s — shared package has %d non-test files (max 6). Move domain-specific code into its own package.", [pkg.path, count(non_test)])
 }
 
 # METADATA
@@ -32,7 +32,7 @@ warn contains msg if {
 	_has_constructor(pkg)
 	some expected in {"service.go", "models.go"}
 	not _has_file(pkg, expected)
-	msg := sprintf("CONSIDER: %s — domain package missing '%s'. Expected layout: service.go, models.go, and handler.go or worker.go.", [pkg.path, expected])
+	msg := sprintf("GO-LAY-002: %s — domain package missing '%s'. Expected layout: service.go, models.go, and handler.go or worker.go.", [pkg.path, expected])
 }
 
 # METADATA
@@ -47,7 +47,7 @@ warn contains msg if {
 warn contains msg if {
 	some pkg in input.packages
 	not _is_under_expected_dir(pkg)
-	msg := sprintf("CONSIDER: %s — package '%s' is outside cmd/, api/, and internal/. Most application code should be under internal/.", [pkg.path, pkg.package])
+	msg := sprintf("GO-LAY-003: %s — package '%s' is outside cmd/, api/, and internal/. Most application code should be under internal/.", [pkg.path, pkg.package])
 }
 
 _allowed_top_level := {"cmd", "api", "internal", "gen", "client"}
